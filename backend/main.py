@@ -186,8 +186,9 @@ def newspaper_frontpage(
         standart_yazilar = [a for a in articles[1:] if a.placement != "kose_yazisi"]
 
     return templates.TemplateResponse(
-        "index.html",
-        {
+        request=request,
+        name="index.html",
+        context={
             "request": request,
             "today_str": get_turkish_date_str(),
             "categories": categories,
@@ -251,8 +252,9 @@ def article_detail_page(
     )
 
     return templates.TemplateResponse(
-        "article.html",
-        {
+        request=request,
+        name="article.html",
+        context={
             "request": request,
             "today_str": get_turkish_date_str(),
             "categories": categories,
@@ -280,8 +282,9 @@ def issues_archive_page(request: Request, db: Session = Depends(get_db)):
         .first()
     )
     return templates.TemplateResponse(
-        "issues.html",
-        {
+        request=request,
+        name="issues.html",
+        context={
             "request": request,
             "today_str": get_turkish_date_str(),
             "categories": categories,
@@ -332,8 +335,9 @@ def flipbook_reader_page(
     )
 
     return templates.TemplateResponse(
-        "reader.html",
-        {
+        request=request,
+        name="reader.html",
+        context={
             "request": request,
             "today_str": get_turkish_date_str(),
             "categories": categories,
