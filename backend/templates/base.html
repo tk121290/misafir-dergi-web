@@ -156,6 +156,11 @@
           {% endfor %}
         {% endif %}
         <li>
+          <a href="/#yazarlar" hx-boost="false" class="hover:text-[#8B1E1E] transition flex items-center gap-1 {% if active_author %}text-[#8B1E1E] underline decoration-2 underline-offset-4{% endif %}">
+            <span>✒ Yazar Kadrosu</span>
+          </a>
+        </li>
+        <li>
           <a href="/sayilar" hx-boost="false" class="text-[#8B1E1E] hover:underline flex items-center gap-1">
             <span>📚 Derlenmiş Aylık Sayılar (PDF & Flipbook)</span>
           </a>
@@ -212,47 +217,97 @@
     </div>
   </div>
 
-  <!-- GAZETE KÜNYE ALT BİLGİSİ (FOOTER) -->
+  <!-- GAZETE KÜNYE & YAZAR KADROSU ALT BİLGİSİ (FOOTER - ADMİN PANELİNE BAĞLI) -->
   <footer class="mt-12 sm:mt-16 border-t-4 border-double border-[#141413] bg-[#ECE5D5] text-[#141413]">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
       <div class="grid grid-cols-1 md:grid-cols-12 gap-8 pb-8 border-b border-[#141413]/25">
-        <div class="md:col-span-5">
-          <h2 class="font-masthead text-3xl sm:text-4xl font-black tracking-tight">MİSAFİR</h2>
+        <!-- SOL SÜTUN: DERGİ HAKKINDA & İLETİŞİM -->
+        <div class="md:col-span-4">
+          <a href="/" class="inline-block">
+            <h2 class="font-masthead text-3xl sm:text-4xl font-black tracking-tight">MİSAFİR</h2>
+          </a>
           <p class="font-headline italic text-sm text-[#524F49] mt-1">
-            Kültür, Edebiyat, Kent ve Düşünce Dergisi
+            {{ footer_settings.tagline if footer_settings else 'Kültür, Edebiyat, Kent ve Düşünce Dergisi' }}
           </p>
           <p class="text-sm mt-3 leading-relaxed text-[#3A3834]">
-            MİSAFİR; ay boyunca güncel edebiyat, kent hafızası ve düşünce yazılarını tekil makale PDF'leriyle birlikte yayınlayan, ay sonunda ise tüm yazıları tek bir aylık sayıda (3B Flipbook & PDF) derleyen bağımsız kültür yayınıdır.
+            {{ footer_settings.about_text if footer_settings else 'MİSAFİR; ay boyunca güncel edebiyat, kent hafızası ve düşünce yazılarını yayınlayan, ay sonunda ise tüm yazıları tek bir aylık sayıda derleyen bağımsız kültür yayınıdır.' }}
           </p>
+          {% if footer_settings and footer_settings.contact_email %}
+            <div class="mt-4 pt-3 border-t border-[#141413]/20 font-mono-meta text-xs text-[#524F49]">
+              <span class="font-bold text-[#8B1E1E]">İLETİŞİM:</span>
+              <a href="mailto:{{ footer_settings.contact_email }}" class="underline hover:text-[#8B1E1E] ml-1">{{ footer_settings.contact_email }}</a>
+            </div>
+          {% endif %}
         </div>
 
-        <div class="md:col-span-4 text-sm space-y-1.5">
-          <h3 class="font-mono-meta text-xs font-bold uppercase tracking-widest text-[#8B1E1E] mb-2">
-            DERGİ KÜNYESİ
-          </h3>
-          <p><strong>İmtiyaz Sahibi & Yazı İşleri:</strong> Misafir Kültür Yayınları</p>
-          <p><strong>Genel Yayın Yönetmeni:</strong> Ahmet Mümtaz İnan</p>
-          <p><strong>Görsel Yönetmen & Tipo Mizanpaj:</strong> Zeynep Karahan</p>
-          <p><strong>Yayın & Sayı Derleme Yönetimi:</strong> Misafir Mobil Stüdyo</p>
+        <!-- ORTA SÜTUN: YAZAR KADROMUZ (ADMİN PANELİNDEN DİNAMİK) -->
+        <div class="md:col-span-5">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-mono-meta text-xs font-bold uppercase tracking-widest text-[#8B1E1E]">
+              ✒ YAZAR KADROMUZ & KALEMLER
+            </h3>
+            <a href="/#yazarlar" class="font-mono-meta text-[10px] underline font-bold hover:text-[#8B1E1E]">
+              Tüm Kadro &rarr;
+            </a>
+          </div>
+          {% if authors %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {% for author in authors %}
+                <a href="/?yazar={{ author.id }}" class="flex items-center gap-2.5 p-2 border border-[#141413]/25 bg-[#FAF7F0] hover:border-[#8B1E1E] transition group">
+                  {% if author.avatar_url %}
+                    <img src="{{ author.avatar_url }}" alt="{{ author.name }}" class="w-8 h-8 rounded-full object-cover border border-[#141413] newspaper-photo shrink-0" />
+                  {% else %}
+                    <div class="w-8 h-8 rounded-full bg-[#141413] text-[#E6C786] font-headline font-bold text-xs flex items-center justify-center shrink-0">
+                      {{ author.name[:1] }}
+                    </div>
+                  {% endif %}
+                  <div class="min-w-0">
+                    <div class="font-headline font-bold text-xs text-[#141413] group-hover:text-[#8B1E1E] truncate">
+                      {{ author.name }}
+                    </div>
+                    <div class="font-mono-meta text-[10px] text-[#524F49] truncate">
+                      {{ author.title or 'Dergi Yazarı' }}
+                    </div>
+                  </div>
+                </a>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="text-xs text-[#524F49] italic">Yazar kadrosu yönetim panelinden güncellenmektedir.</p>
+          {% endif %}
         </div>
 
-        <div class="md:col-span-3 text-sm space-y-2">
-          <h3 class="font-mono-meta text-xs font-bold uppercase tracking-widest text-[#8B1E1E] mb-2">
-            OKUR REHBERİ
-          </h3>
-          <ul class="space-y-1.5 font-headline font-semibold">
-            <li><a href="/" class="hover:text-[#8B1E1E] hover:underline">&rarr; Güncel Yazılar (Erken Görünüm)</a></li>
-            <li><a href="/sayilar" class="hover:text-[#8B1E1E] hover:underline">&rarr; Aylık Derlenmiş Sayılar (PDF)</a></li>
-            {% if featured_issue %}
-              <li><a href="/e-dergi/{{ featured_issue.issue_number }}" class="hover:text-[#8B1E1E] hover:underline">&rarr; Sayı #{{ featured_issue.issue_number }} 3B Flipbook</a></li>
-            {% endif %}
-          </ul>
+        <!-- SAĞ SÜTUN: KÜNYE & HIZLI REHBER -->
+        <div class="md:col-span-3 text-sm space-y-3">
+          <div>
+            <h3 class="font-mono-meta text-xs font-bold uppercase tracking-widest text-[#8B1E1E] mb-2">
+              🏛 DERGİ KÜNYESİ
+            </h3>
+            <div class="space-y-1 text-xs leading-relaxed">
+              <p><strong>Yayımcı & Yazı İşleri:</strong> {{ footer_settings.publisher if footer_settings else 'Misafir Kültür Yayınları' }}</p>
+              <p><strong>Yayın Yönetimi:</strong> {{ footer_settings.editor_in_chief if footer_settings else 'Misafir Yayın Kurulu' }}</p>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-[#141413]/20">
+            <h4 class="font-mono-meta text-[11px] font-bold uppercase tracking-widest text-[#141413] mb-1.5">
+              OKUR REHBERİ
+            </h4>
+            <ul class="space-y-1 text-xs font-headline font-semibold">
+              <li><a href="/" class="hover:text-[#8B1E1E] hover:underline">&rarr; Güncel Yazılar (1. Sayfa)</a></li>
+              <li><a href="/#yazarlar" class="hover:text-[#8B1E1E] hover:underline">&rarr; Yazarlarımız & Köşeler</a></li>
+              <li><a href="/sayilar" class="hover:text-[#8B1E1E] hover:underline">&rarr; Aylık Derlenmiş Sayılar (PDF)</a></li>
+              {% if featured_issue %}
+                <li><a href="/e-dergi/{{ featured_issue.issue_number }}" class="hover:text-[#8B1E1E] hover:underline">&rarr; Sayı #{{ featured_issue.issue_number }} 3B Flipbook</a></li>
+              {% endif %}
+            </ul>
+          </div>
         </div>
       </div>
 
       <div class="pt-5 flex flex-col sm:flex-row items-center justify-between text-center sm:text-left text-xs font-mono-meta text-[#524F49] gap-2">
-        <p>© 2026 MİSAFİR DERGİ. TÜM HAKLARI SAKLIDIR.</p>
-        <p>CAĞALOĞLU / İSTANBUL • WEB YAYINI & AYLIK DERLEME NÜSHASI</p>
+        <p>{{ footer_settings.copyright_text if footer_settings else '© 2026 MİSAFİR DERGİ. TÜM HAKLARI SAKLIDIR.' }}</p>
+        <p>{{ footer_settings.location_text if footer_settings else 'İSTANBUL • AYLIK KÜLTÜR VE EDEBİYAT YAYINI' }}</p>
       </div>
     </div>
   </footer>

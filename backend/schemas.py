@@ -27,11 +27,32 @@ class AuthorCreate(AuthorBase):
     pass
 
 
+class AuthorUpdate(BaseModel):
+    name: Optional[str] = None
+    title: Optional[str] = None
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+
+
 class AuthorOut(AuthorBase):
     id: int
 
     class Config:
         from_attributes = True
+
+
+class FooterSettings(BaseModel):
+    tagline: str = "Kültür, Edebiyat, Kent ve Düşünce Dergisi"
+    about_text: str = (
+        "MİSAFİR; ay boyunca güncel edebiyat, kent hafızası ve düşünce yazılarını yayınlayan, "
+        "ay sonunda ise tüm yazıları tek bir aylık sayıda (3B Flipbook & PDF) derleyen bağımsız kültür yayınıdır."
+    )
+    publisher: str = "Misafir Kültür Yayınları"
+    editor_in_chief: str = "Misafir Yayın Kurulu"
+    contact_email: str = "iletisim@misafirdergi.com"
+    location_text: str = "İSTANBUL • AYLIK KÜLTÜR VE EDEBİYAT YAYINI"
+    copyright_text: str = "© 2026 MİSAFİR DERGİ. TÜM HAKLARI SAKLIDIR."
+
 
 
 class CategoryBase(BaseModel):

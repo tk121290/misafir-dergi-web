@@ -175,7 +175,8 @@ class ApiService {
 
   static Future<void> createAuthor(
       String name, String title, String bio, String avatarUrl) async {
-    final res = await http.post(
+    await ensureAuthenticated();
+    var res = await http.post(
       Uri.parse('$_baseUrl/api/authors'),
       headers: _headers(),
       body: jsonEncode({
@@ -185,16 +186,88 @@ class ApiService {
         'avatar_url': avatarUrl,
       }),
     );
+    if (res.statusCode == 401) {
+      await login('admin', 'admin123');
+      res = await http.post(
+        Uri.parse('$_baseUrl/api/authors'),
+        headers: _headers(),
+        body: jsonEncode({
+          'name': name,
+          'title': title,
+          'bio': bio,
+          'avatar_url': avatarUrl,
+        }),
+      );
+    }
     if (res.statusCode != 200) {
       throw Exception('Yazar eklenemedi.');
     }
   }
 
+  static Future<void> updateAuthor(
+      int id, String name, String title, String bio, String avatarUrl) async {
+    await ensureAuthenticated();
+    var res = await http.put(
+      Uri.parse('$_baseUrl/api/authors/$id'),
+      headers: _headers(),
+      body: jsonEncode({
+        'name': name,
+        'title': title,
+        'bio': bio,
+        'avatar_url': avatarUrl,
+      }),
+    );
+    if (res.statusCode == 401) {
+      await login('admin', 'admin123');
+      res = await http.put(
+        Uri.parse('$_baseUrl/api/authors/$id'),
+        headers: _headers(),
+        body: jsonEncode({
+          'name': name,
+          'title': title,
+          'bio': bio,
+          'avatar_url': avatarUrl,
+        }),
+      );
+    }
+    if (res.statusCode != 200) {
+      throw Exception('Yazar güncellenemedi.');
+    }
+  }
+
   static Future<void> deleteAuthor(int id) async {
+    await ensureAuthenticated();
     await http.delete(
       Uri.parse('$_baseUrl/api/authors/$id'),
       headers: _headers(),
     );
+  }
+
+  static Future<Map<String, dynamic>> getFooterSettings() async {
+    final res = await http.get(Uri.parse('$_baseUrl/api/settings/footer'));
+    if (res.statusCode != 200) return {};
+    return jsonDecode(utf8.decode(res.bodyBytes));
+  }
+
+  static Future<void> updateFooterSettings(
+      Map<String, dynamic> payload) async {
+    await ensureAuthenticated();
+    var res = await http.put(
+      Uri.parse('$_baseUrl/api/settings/footer'),
+      headers: _headers(),
+      body: jsonEncode(payload),
+    );
+    if (res.statusCode == 401) {
+      await login('admin', 'admin123');
+      res = await http.put(
+        Uri.parse('$_baseUrl/api/settings/footer'),
+        headers: _headers(),
+        body: jsonEncode(payload),
+      );
+    }
+    if (res.statusCode != 200) {
+      throw Exception('Footer & Künye ayarları güncellenemedi.');
+    }
   }
 
   static Future<Map<String, dynamic>> uploadIssuePdf({

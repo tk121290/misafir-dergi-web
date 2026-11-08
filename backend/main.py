@@ -24,12 +24,14 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from database import engine, Base, SessionLocal, get_db
-from models import User, Author, Category, Issue, Article
+from models import User, Author, Category, Issue, Article, SiteSetting
 from schemas import (
     LoginRequest,
     TokenResponse,
     AuthorCreate,
+    AuthorUpdate,
     AuthorOut,
+    FooterSettings,
     CategoryCreate,
     CategoryOut,
     IssueOut,
@@ -118,6 +120,19 @@ def get_turkish_date_str() -> str:
     return f"{now.day} {months[now.month]} {now.year}, {days[now.weekday()]}"
 
 
+def get_footer_settings(db: Session) -> dict:
+    default_data = FooterSettings().model_dump()
+    row = db.query(SiteSetting).filter(SiteSetting.key == "footer_settings").first()
+    if row and row.value:
+        try:
+            saved = json.loads(row.value)
+            if isinstance(saved, dict):
+                default_data.update({k: v for k, v in saved.items() if v is not None})
+        except Exception:
+            pass
+    return default_data
+
+
 @app.on_event("startup")
 def on_startup():
     db = SessionLocal()
@@ -136,11 +151,13 @@ def on_startup():
 def newspaper_frontpage(
     request: Request,
     kategori: Optional[str] = Query(None),
+    yazar: Optional[int] = Query(None),
     arama: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
     categories = db.query(Category).all()
     authors = db.query(Author).all()
+    footer_settings = get_footer_settings(db)
     featured_issue = (
         db.query(Issue)
         .filter(Issue.is_published == True)
@@ -161,6 +178,12 @@ def newspaper_frontpage(
         active_category = db.query(Category).filter(Category.slug == kategori).first()
         if active_category:
             query = query.filter(Article.category_id == active_category.id)
+
+    active_author = None
+    if yazar:
+        active_author = db.query(Author).filter(Author.id == yazar).first()
+        if active_author:
+            query = query.filter(Article.author_id == active_author.id)
 
     if arama:
         like_term = f"%{arama}%"
@@ -193,8 +216,10 @@ def newspaper_frontpage(
             "today_str": get_turkish_date_str(),
             "categories": categories,
             "active_category": active_category,
+            "active_author": active_author,
             "search_query": arama or "",
             "authors": authors,
+            "footer_settings": footer_settings,
             "featured_issue": featured_issue,
             "all_issues": all_issues,
             "surmanset": surmanset,
@@ -237,6 +262,8 @@ def article_detail_page(
         article_pdf_pages = [candidate]
 
     categories = db.query(Category).all()
+    authors = db.query(Author).all()
+    footer_settings = get_footer_settings(db)
     featured_issue = (
         db.query(Issue)
         .filter(Issue.is_published == True)
@@ -258,6 +285,8 @@ def article_detail_page(
             "request": request,
             "today_str": get_turkish_date_str(),
             "categories": categories,
+            "authors": authors,
+            "footer_settings": footer_settings,
             "featured_issue": featured_issue,
             "article": article,
             "article_pdf_pages": article_pdf_pages,
@@ -269,6 +298,8 @@ def article_detail_page(
 @app.get("/sayilar", response_class=HTMLResponse)
 def issues_archive_page(request: Request, db: Session = Depends(get_db)):
     categories = db.query(Category).all()
+    authors = db.query(Author).all()
+    footer_settings = get_footer_settings(db)
     issues = (
         db.query(Issue)
         .filter(Issue.is_published == True)
@@ -288,6 +319,8 @@ def issues_archive_page(request: Request, db: Session = Depends(get_db)):
             "request": request,
             "today_str": get_turkish_date_str(),
             "categories": categories,
+            "authors": authors,
+            "footer_settings": footer_settings,
             "featured_issue": featured_issue,
             "issues": issues,
         },
@@ -303,6 +336,8 @@ def flipbook_reader_page(
         raise HTTPException(status_code=404, detail="Dergi sayısı bulunamadı.")
 
     categories = db.query(Category).all()
+    authors = db.query(Author).all()
+    footer_settings = get_footer_settings(db)
     pages_dir = os.path.join(
         STATIC_DIR, "uploads", "pages", f"issue_{issue.issue_number}"
     )
@@ -341,6 +376,8 @@ def flipbook_reader_page(
             "request": request,
             "today_str": get_turkish_date_str(),
             "categories": categories,
+            "authors": authors,
+            "footer_settings": footer_settings,
             "featured_issue": issue,
             "issue": issue,
             "page_urls": page_urls,
@@ -506,6 +543,25 @@ def api_create_author(
     return new_author
 
 
+@app.put("/api/authors/{author_id}", response_model=AuthorOut)
+def api_update_author(
+    author_id: int,
+    payload: AuthorUpdate,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    author = db.query(Author).filter(Author.id == author_id).first()
+    if not author:
+        raise HTTPException(status_code=404, detail="Yazar bulunamadı.")
+    update_data = payload.model_dump(exclude_unset=True)
+    for k, v in update_data.items():
+        if v is not None:
+            setattr(author, k, v)
+    db.commit()
+    db.refresh(author)
+    return author
+
+
 @app.delete("/api/authors/{author_id}")
 def api_delete_author(
     author_id: int,
@@ -515,9 +571,34 @@ def api_delete_author(
     author = db.query(Author).filter(Author.id == author_id).first()
     if not author:
         raise HTTPException(status_code=404, detail="Yazar bulunamadı.")
+    db.query(Article).filter(Article.author_id == author_id).update(
+        {Article.author_id: None}
+    )
     db.delete(author)
     db.commit()
     return {"status": "deleted", "id": author_id}
+
+
+@app.get("/api/settings/footer", response_model=FooterSettings)
+def api_get_footer_settings(db: Session = Depends(get_db)):
+    return FooterSettings(**get_footer_settings(db))
+
+
+@app.put("/api/settings/footer", response_model=FooterSettings)
+def api_update_footer_settings(
+    payload: FooterSettings,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    row = db.query(SiteSetting).filter(SiteSetting.key == "footer_settings").first()
+    serialized = json.dumps(payload.model_dump(), ensure_ascii=False)
+    if not row:
+        row = SiteSetting(key="footer_settings", value=serialized)
+        db.add(row)
+    else:
+        row.value = serialized
+    db.commit()
+    return payload
 
 
 @app.get("/api/issues", response_model=List[IssueOut])

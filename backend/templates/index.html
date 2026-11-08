@@ -1,16 +1,46 @@
 {% extends "base.html" %}
 
 {% block title %}
-  {% if active_category %}
+  {% if active_author %}
+    {{ active_author.name }} Yazıları — MİSAFİR Dergi
+  {% elif active_category %}
     {{ active_category.name }} Yazıları — MİSAFİR Gazete & Dergi
   {% else %}
-    MİSAFİR — Kültür, Edebiyat ve Düşünce Gazetesi (1. Sayfa)
+    MİSAFİR — Kültür, Edebiyat ve Düşünce Dergisi (1. Sayfa)
   {% endif %}
 {% endblock %}
 
 {% block content %}
 
-  {% if active_category or search_query %}
+  {% if active_author %}
+    <div class="mb-6 bg-[#EFE9D9] border-2 border-[#141413] p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div class="flex items-center gap-4">
+        {% if active_author.avatar_url %}
+          <img src="{{ active_author.avatar_url }}" alt="{{ active_author.name }}" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-[#141413] newspaper-photo shrink-0" />
+        {% else %}
+          <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#141413] text-[#E6C786] font-headline font-black text-2xl flex items-center justify-center shrink-0">
+            {{ active_author.name[:1] }}
+          </div>
+        {% endif %}
+        <div>
+          <span class="font-mono-meta text-xs uppercase text-[#8B1E1E] font-bold">
+            ✒ MİSAFİR YAZAR ARŞİVİ • {{ active_author.title or 'DERGİ YAZARI' }}
+          </span>
+          <h2 class="font-headline text-2xl sm:text-3xl font-black text-[#141413]">
+            {{ active_author.name }}
+          </h2>
+          {% if active_author.bio %}
+            <p class="text-xs sm:text-sm text-[#3A3834] mt-1 max-w-2xl leading-relaxed">
+              {{ active_author.bio }}
+            </p>
+          {% endif %}
+        </div>
+      </div>
+      <a href="/" class="font-mono-meta text-xs bg-[#141413] text-[#F6F2E7] px-3.5 py-2 font-bold hover:bg-[#8B1E1E] transition shrink-0">
+        1. Sayfaya Dön &times;
+      </a>
+    </div>
+  {% elif active_category or search_query %}
     <div class="mb-6 bg-[#EFE9D9] border border-[#141413] px-4 py-3 flex flex-wrap items-center justify-between gap-2">
       <div>
         <span class="font-mono-meta text-xs uppercase text-[#8B1E1E] font-bold">FİLTRELENMİŞ NÜSHA</span>
@@ -24,7 +54,7 @@
   {% endif %}
 
   <!-- SÜRMANŞET (ÜST MANŞET ŞERİDİ - RESPONSIVE) -->
-  {% if surmanset and not active_category and not search_query %}
+  {% if surmanset and not active_category and not active_author and not search_query %}
     <section class="mb-6 pb-5 border-b-2 border-[#141413]">
       <div class="bg-[#FAF7F0] border border-[#141413]/40 p-3.5 sm:p-5 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-center group">
         <div class="lg:col-span-8">
@@ -304,13 +334,78 @@
           </div>
 
           <div class="mt-4 pt-3 border-t border-[#141413]/20 flex items-center justify-between text-xs font-mono-meta">
-            <span>✍ {{ yazi.author.name if yazi.author else 'Misafir' }}</span>
+            {% if yazi.author %}
+              <a href="/?yazar={{ yazi.author.id }}" class="hover:text-[#8B1E1E] hover:underline font-semibold">✍ {{ yazi.author.name }}</a>
+            {% else %}
+              <span>✍ Misafir</span>
+            {% endif %}
             <a href="/yazi/{{ yazi.slug }}" class="font-bold underline hover:text-[#8B1E1E]">Oku &rarr;</a>
           </div>
         </article>
       {% endfor %}
     </div>
   </section>
+
+  <!-- YAZAR KADROSU BÖLÜMÜ (ADMİN PANELİNE BAĞLI DİNAMİK YAZAR VİTRİNİ) -->
+  {% if authors %}
+    <section id="yazarlar" class="py-8 border-b-2 border-[#141413]">
+      <div class="flex flex-wrap items-end justify-between mb-6 gap-4">
+        <div>
+          <span class="font-mono-meta text-xs uppercase tracking-widest text-[#8B1E1E] font-bold">
+            ✒ MİSAFİR KALEMLERİ & KÖŞE YAZARLARI
+          </span>
+          <h3 class="font-headline text-2xl sm:text-3xl font-black">
+            Yazar Kadromuz
+          </h3>
+        </div>
+        {% if active_author %}
+          <a href="/" class="font-mono-meta text-xs underline font-bold hover:text-[#8B1E1E]">
+            Tüm Yazarların Yazılarını Göster &times;
+          </a>
+        {% endif %}
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {% for author in authors %}
+          <a href="/?yazar={{ author.id }}" class="border-2 {% if active_author and active_author.id == author.id %}border-[#8B1E1E] bg-[#EFE9D9]{% else %}border-[#141413]/40 bg-[#FAF7F0]{% endif %} p-4 flex flex-col justify-between hover:border-[#8B1E1E] transition group">
+            <div>
+              <div class="flex items-center gap-3 mb-3">
+                {% if author.avatar_url %}
+                  <img src="{{ author.avatar_url }}" alt="{{ author.name }}" class="w-12 h-12 rounded-full object-cover border border-[#141413] newspaper-photo shrink-0" />
+                {% else %}
+                  <div class="w-12 h-12 rounded-full bg-[#141413] text-[#E6C786] font-headline font-black text-lg flex items-center justify-center shrink-0">
+                    {{ author.name[:1] }}
+                  </div>
+                {% endif %}
+                <div class="min-w-0">
+                  <h4 class="font-headline text-lg font-bold leading-tight text-[#141413] group-hover:text-[#8B1E1E] truncate">
+                    {{ author.name }}
+                  </h4>
+                  <span class="font-mono-meta text-[10px] uppercase tracking-wider text-[#8B1E1E] font-bold block truncate">
+                    {{ author.title or 'Dergi Yazarı' }}
+                  </span>
+                </div>
+              </div>
+              {% if author.bio %}
+                <p class="text-xs text-[#3A3834] leading-relaxed line-clamp-3">
+                  {{ author.bio }}
+                </p>
+              {% else %}
+                <p class="text-xs text-[#524F49] italic">
+                  Misafir Kültür, Edebiyat ve Düşünce Dergisi yazarı.
+                </p>
+              {% endif %}
+            </div>
+
+            <div class="mt-4 pt-2.5 border-t border-[#141413]/20 flex items-center justify-between font-mono-meta text-[11px]">
+              <span class="text-[#524F49]">{{ author.articles | length }} Yayınlanmış Yazı</span>
+              <span class="font-bold text-[#8B1E1E] group-hover:underline">Yazıları &rarr;</span>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
 
   <!-- ALT VİTRİN: SAYFA ÇEVİRMELİ E-DERGİ ARŞİVİ -->
   <section class="pt-8">

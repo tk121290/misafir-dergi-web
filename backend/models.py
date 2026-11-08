@@ -101,3 +101,12 @@ class Article(Base):
     author = relationship("Author", back_populates="articles")
     category = relationship("Category", back_populates="articles")
     issue = relationship("Issue", back_populates="articles")
+
+
+class SiteSetting(Base):
+    __tablename__ = "site_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String(80), unique=True, index=True, nullable=False)
+    value = Column(Text, default="")
+
