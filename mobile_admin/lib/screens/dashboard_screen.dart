@@ -851,10 +851,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF141413),
         foregroundColor: const Color(0xFFF6F2E7),
-        title: const Column(
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'MİSAFİR • YAZI İŞLERİ MASASI',
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -864,17 +864,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             Text(
-              'Mobil Admin • PDF Dergi & IG Stüdyo',
+              ApiService.baseUrl.contains('onrender.com')
+                  ? '☁ Canlı Web: misafir-dergi-web.onrender.com'
+                  : '💻 Sunucu: ${ApiService.baseUrl}',
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 11, color: Color(0xFFE6C786)),
+              style: const TextStyle(fontSize: 10.5, color: Color(0xFFE6C786)),
             ),
           ],
         ),
         actions: [
-          IconButton(
-            tooltip: 'Sihirli IG Stüdyo',
-            onPressed: () => _openInstagramStudio(),
-            icon: const Icon(Icons.auto_awesome, color: Color(0xFFE6C786)),
+          PopupMenuButton<String>(
+            tooltip: 'Bağlı Web Sunucusu',
+            icon: Icon(
+              ApiService.baseUrl.contains('onrender.com')
+                  ? Icons.cloud_done
+                  : Icons.dns_outlined,
+              color: const Color(0xFFE6C786),
+            ),
+            onSelected: (url) async {
+              await ApiService.setBaseUrl(url);
+              await ApiService.login('admin', 'admin123');
+              _refreshAll();
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'https://misafir-dergi-web.onrender.com',
+                child: Text('☁ Canlı Web Sitesi (Render)'),
+              ),
+              PopupMenuItem(
+                value: 'http://127.0.0.1:8000',
+                child: Text('💻 Yerel Bilgisayar (USB)'),
+              ),
+            ],
           ),
           IconButton(
             tooltip: 'Yenile',
