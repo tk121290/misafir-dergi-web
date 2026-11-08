@@ -21,6 +21,14 @@ class ApiService {
   static String? get token => _token;
   static String get fullName => _fullName ?? 'Baş Editör (Misafir)';
 
+  static String resolveUrl(String path) {
+    if (path.isEmpty) return '';
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path;
+    }
+    return '$_baseUrl${path.startsWith('/') ? '' : '/'}$path';
+  }
+
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     _baseUrl =
