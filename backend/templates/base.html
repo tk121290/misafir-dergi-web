@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}MİSAFİR — Kültür, Edebiyat ve Düşünce Dergisi{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Playfair+Display:ital,wght@0,500;0,700;0,800;0,900;1,400;1,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/newspaper.css" />
+</head>
+<body class="min-h-screen flex flex-col selection:bg-[#8B1E1E] selection:text-[#F6F2E7]">
+
+  <!-- ÜST İNCE OKUMA İLERLEME ÇUBUĞU (READING PROGRESS BAR) -->
+  <div class="fixed top-0 left-0 right-0 h-1 bg-transparent z-50 pointer-events-none no-print">
+    <div id="readingProgressBar" class="h-full bg-[#8B1E1E] transition-all duration-150" style="width: 0%;"></div>
+  </div>
+
+  <!-- ÜST EDİTORYAL DUYURU & OKUYUCU KONFOR ŞERİDİ -->
+  <div class="bg-[#141413] text-[#F6F2E7] border-b border-black/30 no-print">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2 text-[11px] sm:text-xs font-mono-meta tracking-wide">
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="bg-[#8B1E1E] text-white px-2 py-0.5 font-bold uppercase shrink-0">Aylık Sayı</span>
+        {% if featured_issue %}
+          <a href="/e-dergi/{{ featured_issue.issue_number }}" class="truncate hover:text-[#E6C786] transition">
+            Sayı #{{ featured_issue.issue_number }} ({{ featured_issue.month_year }}): <strong>{{ featured_issue.title }}</strong>
+          </a>
+        {% else %}
+          <span class="truncate">Misafir Kültür, Edebiyat ve Düşünce Dergisi</span>
+        {% endif %}
+      </div>
+      <div class="flex items-center gap-2.5 sm:gap-4 shrink-0 ml-auto">
+        <button
+          type="button"
+          onclick="openSearchModal()"
+          class="bg-white/10 hover:bg-white/20 text-[#F6F2E7] px-2.5 py-1 flex items-center gap-1.5 transition"
+          title="Yazılarda ve Sayılarda Ara (Ctrl+K)"
+        >
+          <span>🔍 Ara</span>
+          <kbd class="hidden sm:inline text-[10px] opacity-70 border border-white/25 px-1">Ctrl+K</kbd>
+        </button>
+        <button
+          type="button"
+          onclick="toggleSavedDrawer()"
+          class="bg-white/10 hover:bg-white/20 text-[#E6C786] px-2.5 py-1 flex items-center gap-1 transition font-bold"
+          title="Kaydettiğiniz Yazılar ve Alıntılar"
+        >
+          <span>🔖 Küpür Çantam</span>
+          <span id="savedCountBadge" class="bg-[#8B1E1E] text-white px-1.5 rounded-full text-[10px]">0</span>
+        </button>
+        <button
+          type="button"
+          onclick="toggleNightEdition()"
+          id="nightEditionBtn"
+          class="bg-white/10 hover:bg-white/20 text-[#F6F2E7] px-2.5 py-1 transition"
+          title="Gece Baskısı / Gündüz Kağıdı Modu"
+        >
+          🌙 Gece Baskısı
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANA BAŞLIK (MASTHEAD - SADE VE NET NATURE/GAZETE MİZANPAJI) -->
+  <header class="max-w-7xl w-full mx-auto px-3 sm:px-6 pt-4 sm:pt-6">
+    <div class="grid grid-cols-1 lg:grid-cols-12 items-center gap-4 pb-4 border-b border-[#141413]/30">
+      
+      <!-- SOL KULAK: SON DERLENEN AYLIK SAYI (3B FLIPBOOK) -->
+      <div class="hidden lg:flex lg:col-span-3 border border-[#141413]/40 bg-[#EFE9D9]/70 p-2.5 items-center gap-3">
+        {% if featured_issue %}
+          <img src="{{ featured_issue.cover_image_url }}" alt="Kapak" class="w-12 h-16 object-cover border border-[#141413] newspaper-photo shrink-0" />
+          <div class="text-xs leading-snug min-w-0">
+            <span class="font-mono-meta text-[10px] uppercase tracking-wider text-[#8B1E1E] font-bold block">AYLIK DERLEME • SAYI #{{ featured_issue.issue_number }}</span>
+            <p class="font-headline font-bold text-[#141413] truncate">{{ featured_issue.title }}</p>
+            <a href="/e-dergi/{{ featured_issue.issue_number }}" class="inline-block mt-1 font-mono-meta text-[11px] underline font-semibold hover:text-[#8B1E1E]">
+              📖 3B Flipbook Oku &rarr;
+            </a>
+          </div>
+        {% else %}
+          <div class="text-xs">
+            <span class="font-mono-meta text-[10px] uppercase text-[#8B1E1E] font-bold">MİSAFİR DERGİ</span>
+            <p class="font-headline font-bold">Ay Sonu Derlenen E-Dergi</p>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- ORTA: MİSAFİR LOGOSU -->
+      <div class="lg:col-span-6 text-center px-2">
+        <p class="font-mono-meta text-[10px] sm:text-[11px] tracking-[0.18em] sm:tracking-[0.25em] uppercase text-[#524F49] mb-1">
+          “Hakikat, gürültünün bittiği sayfada başlar”
+        </p>
+        <a href="/" class="inline-block group">
+          <h1 class="font-masthead text-5xl sm:text-7xl md:text-8xl font-black tracking-tight text-[#141413] leading-none">
+            MİSAFİR
+          </h1>
+        </a>
+        <p class="font-headline italic text-xs sm:text-base text-[#3A3834] mt-1.5">
+          Kültür, Edebiyat, Kent Hafızası ve Düşünce Dergisi
+        </p>
+      </div>
+
+      <!-- SAĞ KULAK: YAYIN MODELİ & KÜNYE -->
+      <div class="hidden lg:flex lg:col-span-3 border border-[#141413]/40 bg-[#EFE9D9]/70 p-2.5 flex-col justify-between text-right text-xs">
+        <div class="font-mono-meta text-[10px] uppercase tracking-wider text-[#8B1E1E] font-bold">
+          SÜREKLİ WEB YAYINI & AYLIK SAYI
+        </div>
+        <div class="font-body italic text-[#141413] text-xs my-0.5">
+          Yazılar ay boyunca yayınlanır, ay sonunda tek sayıda derlenir
+        </div>
+        <div class="font-mono-meta text-[10px] text-[#524F49]">
+          ISSN 2791-884X • <a href="/sayilar" class="underline font-bold hover:text-[#8B1E1E]">TÜM SAYILAR &rarr;</a>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TARİH VE HIZLI GEZİNME ŞERİDİ -->
+    <div class="py-2 flex items-center justify-between gap-2 text-xs font-mono-meta border-b border-[#141413]">
+      <div class="flex items-center gap-3">
+        <span class="font-bold text-[#141413] text-[11px] sm:text-xs">📅 {{ today_str or "8 KASIM 2026, PAZAR" }}</span>
+        <span class="hidden md:inline opacity-40">•</span>
+        <span class="hidden md:inline text-[#524F49]">GÜNCEL YAZILAR & AYLIK ARŞİV NÜSHASI</span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        {% if featured_issue %}
+          <a href="/e-dergi/{{ featured_issue.issue_number }}" class="bg-[#8B1E1E] text-white px-2.5 py-1 text-[11px] font-bold uppercase hover:bg-[#141413] transition">
+            📖 Sayı #{{ featured_issue.issue_number }} Flipbook
+          </a>
+        {% endif %}
+        <a href="/sayilar" class="border border-[#141413] px-2.5 py-1 text-[11px] font-bold uppercase hover:bg-[#141413] hover:text-white transition">
+          📚 Sayı Arşivi
+        </a>
+      </div>
+    </div>
+
+    <div class="ink-double-rule my-0.5"></div>
+
+    <!-- BÖLÜMLER (HTMX İLE SAYFA YENİLEMESİZ HIZLI GEÇİŞ) -->
+    <nav hx-boost="true" class="py-2.5 border-b-2 border-[#141413] flex items-center justify-between overflow-x-auto no-scrollbar">
+      <ul class="flex items-center space-x-4 sm:space-x-7 text-xs sm:text-sm font-headline font-bold uppercase tracking-wider whitespace-nowrap px-1">
+        <li>
+          <a href="/" class="hover:text-[#8B1E1E] transition {% if not active_category and request.url.path == '/' %}text-[#8B1E1E] underline decoration-2 underline-offset-4{% endif %}">
+            Güncel Yazılar (1. Sayfa)
+          </a>
+        </li>
+        {% if categories %}
+          {% for cat in categories %}
+            <li>
+              <a href="/?kategori={{ cat.slug }}" class="hover:text-[#8B1E1E] transition {% if active_category and active_category.slug == cat.slug %}text-[#8B1E1E] underline decoration-2 underline-offset-4{% endif %}">
+                {{ cat.name }}
+              </a>
+            </li>
+          {% endfor %}
+        {% endif %}
+        <li>
+          <a href="/sayilar" hx-boost="false" class="text-[#8B1E1E] hover:underline flex items-center gap-1">
+            <span>📚 Derlenmiş Aylık Sayılar (PDF & Flipbook)</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- ANA İÇERİK -->
+  <main id="mainContentArea" class="flex-grow max-w-7xl w-full mx-auto px-3 sm:px-6 py-5 sm:py-7">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- 🔍 BİRLEŞİK CANLI ARAMA MODALI (CTRL+K) -->
+  <div id="liveSearchModal" class="fixed inset-0 bg-black/70 z-50 hidden items-start justify-center pt-14 sm:pt-24 px-4 no-print" onclick="if(event.target===this) closeSearchModal()">
+    <div class="bg-[#FAF7F0] border-2 border-[#141413] w-full max-w-2xl shadow-2xl overflow-hidden">
+      <div class="bg-[#141413] text-[#F6F2E7] px-4 py-2.5 flex items-center justify-between font-mono-meta text-xs">
+        <span>🔍 MİSAFİR YAZI & AYLIK SAYI ARŞİVİNDE CANLI ARA</span>
+        <button onclick="closeSearchModal()" class="text-[#E6C786] font-bold hover:underline">KAPAT [ESC]</button>
+      </div>
+      <div class="p-4 border-b border-[#141413]/30 flex items-center gap-2 bg-white">
+        <span class="text-lg">🔍</span>
+        <input
+          id="liveSearchInput"
+          type="text"
+          placeholder="Makale başlığı, yazar, kavram veya alıntı yazın..."
+          class="w-full bg-transparent text-base font-body text-[#141413] focus:outline-none"
+          oninput="handleLiveSearch(this.value)"
+        />
+      </div>
+      <div id="liveSearchResults" class="max-h-96 overflow-y-auto p-4 space-y-3 text-sm">
+        <p class="font-mono-meta text-xs text-[#524F49]">
+          Aramaya başlamak için en az 2 harf yazın. Hem ay içi yayınlanan yazılar hem de derlenmiş aylık sayılar taranır.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🔖 KÜPÜR ÇANTAM (OKUMA LİSTEM & KAYDEDİLEN ALINTILAR ÇEKMECESİ) -->
+  <div id="savedClipsDrawer" class="fixed inset-y-0 right-0 w-full max-w-md bg-[#FAF7F0] border-l-2 border-[#141413] z-50 hidden flex-col shadow-2xl no-print">
+    <div class="bg-[#141413] text-[#F6F2E7] px-4 py-3.5 flex items-center justify-between">
+      <div>
+        <span class="font-mono-meta text-[10px] text-[#E6C786] uppercase block">KİŞİSEL OKUMA ARŞİVİNİZ</span>
+        <h3 class="font-headline text-lg font-bold">🔖 Küpür Çantam & Okuma Listem</h3>
+      </div>
+      <button onclick="toggleSavedDrawer()" class="font-mono-meta text-xs bg-[#8B1E1E] px-2.5 py-1 text-white font-bold">
+        KAPAT &times;
+      </button>
+    </div>
+    <div id="savedClipsList" class="flex-1 overflow-y-auto p-4 space-y-3 text-sm"></div>
+    <div class="p-3 border-t border-[#141413]/30 bg-[#EFE9D9] flex items-center justify-between font-mono-meta text-xs">
+      <span class="text-[#524F49]">Tarayıcınızda çevrimdışı saklanır</span>
+      <button onclick="clearSavedClips()" class="text-[#8B1E1E] underline font-bold">Tümünü Temizle</button>
+    </div>
+  </div>
+
+  <!-- GAZETE KÜNYE ALT BİLGİSİ (FOOTER) -->
+  <footer class="mt-12 sm:mt-16 border-t-4 border-double border-[#141413] bg-[#ECE5D5] text-[#141413]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-8 pb-8 border-b border-[#141413]/25">
+        <div class="md:col-span-5">
+          <h2 class="font-masthead text-3xl sm:text-4xl font-black tracking-tight">MİSAFİR</h2>
+          <p class="font-headline italic text-sm text-[#524F49] mt-1">
+            Kültür, Edebiyat, Kent ve Düşünce Dergisi
+          </p>
+          <p class="text-sm mt-3 leading-relaxed text-[#3A3834]">
+            MİSAFİR; ay boyunca güncel edebiyat, kent hafızası ve düşünce yazılarını tekil makale PDF'leriyle birlikte yayınlayan, ay sonunda ise tüm yazıları tek bir aylık sayıda (3B Flipbook & PDF) derleyen bağımsız kültür yayınıdır.
+          </p>
+        </div>
+
+        <div class="md:col-span-4 text-sm space-y-1.5">
+          <h3 class="font-mono-meta text-xs font-bold uppercase tracking-widest text-[#8B1E1E] mb-2">
+            DERGİ KÜNYESİ
+          </h3>
+          <p><strong>İmtiyaz Sahibi & Yazı İşleri:</strong> Misafir Kültür Yayınları</p>
+          <p><strong>Genel Yayın Yönetmeni:</strong> Ahmet Mümtaz İnan</p>
+          <p><strong>Görsel Yönetmen & Tipo Mizanpaj:</strong> Zeynep Karahan</p>
+          <p><strong>Yayın & Sayı Derleme Yönetimi:</strong> Misafir Mobil Stüdyo</p>
+        </div>
+
+        <div class="md:col-span-3 text-sm space-y-2">
+          <h3 class="font-mono-meta text-xs font-bold uppercase tracking-widest text-[#8B1E1E] mb-2">
+            OKUR REHBERİ
+          </h3>
+          <ul class="space-y-1.5 font-headline font-semibold">
+            <li><a href="/" class="hover:text-[#8B1E1E] hover:underline">&rarr; Güncel Yazılar (Erken Görünüm)</a></li>
+            <li><a href="/sayilar" class="hover:text-[#8B1E1E] hover:underline">&rarr; Aylık Derlenmiş Sayılar (PDF)</a></li>
+            {% if featured_issue %}
+              <li><a href="/e-dergi/{{ featured_issue.issue_number }}" class="hover:text-[#8B1E1E] hover:underline">&rarr; Sayı #{{ featured_issue.issue_number }} 3B Flipbook</a></li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+
+      <div class="pt-5 flex flex-col sm:flex-row items-center justify-between text-center sm:text-left text-xs font-mono-meta text-[#524F49] gap-2">
+        <p>© 2026 MİSAFİR DERGİ. TÜM HAKLARI SAKLIDIR.</p>
+        <p>CAĞALOĞLU / İSTANBUL • WEB YAYINI & AYLIK DERLEME NÜSHASI</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // 1. Gece Baskısı (Dark Paper) & Punto Tercihi
+    function applyReaderPreferences() {
+      const night = localStorage.getItem('misafir_night') === '1';
+      document.body.classList.toggle('night-edition', night);
+      const btn = document.getElementById('nightEditionBtn');
+      if (btn) btn.textContent = night ? '☀️ Gündüz Kağıdı' : '🌙 Gece Baskısı';
+
+      const fontPref = localStorage.getItem('misafir_font') || 'md';
+      document.body.classList.remove('font-sm', 'font-lg');
+      if (fontPref === 'sm') document.body.classList.add('font-sm');
+      if (fontPref === 'lg') document.body.classList.add('font-lg');
+    }
+
+    function toggleNightEdition() {
+      const current = localStorage.getItem('misafir_night') === '1';
+      localStorage.setItem('misafir_night', current ? '0' : '1');
+      applyReaderPreferences();
+    }
+
+    function setFontSizePref(size) {
+      localStorage.setItem('misafir_font', size);
+      applyReaderPreferences();
+    }
+
+    function toggleZenMode() {
+      document.body.classList.toggle('zen-mode');
+    }
+
+    // 2. Okuma İlerleme Çubuğu (Reading Progress Bar)
+    window.addEventListener('scroll', () => {
+      const bar = document.getElementById('readingProgressBar');
+      if (!bar) return;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const pct = docHeight > 0 ? Math.min(100, Math.max(0, (window.scrollY / docHeight) * 100)) : 0;
+      bar.style.width = pct + '%';
+    });
+
+    // 3. Canlı Arama Modalı (Ctrl+K)
+    let searchTimer = null;
+    function openSearchModal() {
+      const modal = document.getElementById('liveSearchModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      setTimeout(() => document.getElementById('liveSearchInput')?.focus(), 50);
+    }
+    function closeSearchModal() {
+      const modal = document.getElementById('liveSearchModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+    window.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        openSearchModal();
+      } else if (e.key === 'Escape') {
+        closeSearchModal();
+      }
+    });
+
+    function handleLiveSearch(val) {
+      clearTimeout(searchTimer);
+      const box = document.getElementById('liveSearchResults');
+      if (!val || val.trim().length < 2) {
+        box.innerHTML = '<p class="font-mono-meta text-xs text-[#524F49]">Aramaya başlamak için en az 2 harf yazın...</p>';
+        return;
+      }
+      searchTimer = setTimeout(async () => {
+        try {
+          const res = await fetch('/api/search/live?q=' + encodeURIComponent(val.trim()));
+          const data = await res.json();
+          let html = '';
+          if (data.issues && data.issues.length) {
+            html += '<div class="font-mono-meta text-[11px] font-bold text-[#8B1E1E] uppercase">📚 Derlenmiş Aylık Sayılar</div>';
+            data.issues.forEach(i => {
+              html += `<a href="/e-dergi/${i.issue_number}" class="block p-2.5 border border-[#141413]/30 bg-[#EFE9D9] hover:border-[#8B1E1E] transition">
+                <span class="font-mono-meta text-[10px] font-bold text-[#8B1E1E]">SAYI #${i.issue_number} • ${i.month_year}</span>
+                <div class="font-headline font-bold text-sm">${i.title}</div>
+              </a>`;
+            });
+          }
+          if (data.articles && data.articles.length) {
+            html += '<div class="font-mono-meta text-[11px] font-bold text-[#141413] uppercase pt-2">📰 Yayınlanan Yazılar & Makaleler</div>';
+            data.articles.forEach(a => {
+              const issueBadge = a.issue_number
+                ? `Sayı #${a.issue_number} (s. ${a.pdf_page_start || 1})`
+                : 'Güncel Yayın (Erken Görünüm)';
+              html += `<a href="/yazi/${a.slug}" class="block p-2.5 border border-[#141413]/30 bg-white hover:border-[#8B1E1E] transition">
+                <div class="flex items-center justify-between font-mono-meta text-[10px] text-[#524F49]">
+                  <span>${a.category} • ${a.author}</span>
+                  <span class="text-[#8B1E1E] font-bold">${issueBadge}</span>
+                </div>
+                <div class="font-headline font-bold text-base mt-0.5">${a.title}</div>
+              </a>`;
+            });
+          }
+          if (!html) {
+            html = '<p class="font-mono-meta text-xs text-[#8B1E1E]">Eşleşen yazı veya sayı bulunamadı.</p>';
+          }
+          box.innerHTML = html;
+        } catch (err) {}
+      }, 180);
+    }
+
+    // 4. Küpür Çantam (Okuma Listesi & Kaydedilen Alıntılar)
+    function getSavedClips() {
+      try {
+        return JSON.parse(localStorage.getItem('misafir_clips') || '[]');
+      } catch (e) {
+        return [];
+      }
+    }
+    function updateSavedClipsUI() {
+      const clips = getSavedClips();
+      const badge = document.getElementById('savedCountBadge');
+      if (badge) badge.textContent = clips.length;
+      const listEl = document.getElementById('savedClipsList');
+      if (!listEl) return;
+      if (!clips.length) {
+        listEl.innerHTML = '<p class="font-mono-meta text-xs text-[#524F49]">Henüz kaydettiğiniz bir yazı veya cümle küpürü yok. Yazı sayfalarındaki "🔖 Küpür Çantama Ekle" butonunu kullanabilir veya metin içinden bir cümleyi seçip kaydedebilirsiniz.</p>';
+        return;
+      }
+      listEl.innerHTML = clips.map((c, idx) => `
+        <div class="p-3 border border-[#141413] bg-white space-y-1.5">
+          <div class="flex items-center justify-between font-mono-meta text-[10px] text-[#8B1E1E] font-bold">
+            <span>${c.type === 'quote' ? '❝ KAYDEDİLEN ALINTI' : '📰 KAYDEDİLEN MAKALE'}</span>
+            <button onclick="removeSavedClip(${idx})" class="text-[#524F49] hover:text-red-700">Sil &times;</button>
+          </div>
+          ${c.quote ? `<blockquote class="italic font-body text-xs border-l-2 border-[#8B1E1E] pl-2">“${c.quote}”</blockquote>` : ''}
+          <a href="${c.url}" class="block font-headline font-bold text-sm hover:text-[#8B1E1E] underline">${c.title}</a>
+        </div>
+      `).join('');
+    }
+    function saveClipItem(item) {
+      const clips = getSavedClips();
+      clips.unshift(item);
+      localStorage.setItem('misafir_clips', JSON.stringify(clips.slice(0, 30)));
+      updateSavedClipsUI();
+    }
+    function removeSavedClip(idx) {
+      const clips = getSavedClips();
+      clips.splice(idx, 1);
+      localStorage.setItem('misafir_clips', JSON.stringify(clips));
+      updateSavedClipsUI();
+    }
+    function clearSavedClips() {
+      localStorage.removeItem('misafir_clips');
+      updateSavedClipsUI();
+    }
+    function toggleSavedDrawer() {
+      const dr = document.getElementById('savedClipsDrawer');
+      if (!dr) return;
+      dr.classList.toggle('hidden');
+      dr.classList.toggle('flex');
+      updateSavedClipsUI();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      applyReaderPreferences();
+      updateSavedClipsUI();
+    });
+    document.addEventListener('htmx:afterSwap', () => {
+      applyReaderPreferences();
+      updateSavedClipsUI();
+    });
+  </script>
+</body>
+</html>

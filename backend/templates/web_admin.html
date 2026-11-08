@@ -1,0 +1,782 @@
+{% extends "base.html" %}
+
+{% block title %}MİSAFİR Yazı İşleri & Admin Yönetim Paneli{% endblock %}
+
+{% block content %}
+<!-- ÜST BAŞLIK VE OTURUM DURUMU -->
+<div class="mb-6 pb-4 border-b-2 border-[#141413] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+  <div>
+    <span class="font-mono-meta text-xs uppercase tracking-widest text-[#8B1E1E] font-bold">
+      MİSAFİR MERKEZİ YAZI İŞLERİ MASASI (WEB & FLUTTER API SENKRONİZE)
+    </span>
+    <h1 class="font-headline text-2xl sm:text-4xl font-black mt-1">
+      Editör & Admin Yönetim Paneli
+    </h1>
+    <p class="text-xs sm:text-sm text-[#3A3834] mt-1">
+      Gazete manşetlerini, köşe yazılarını, 3B sayfa çevirmeli PDF e-dergi sayılarını, yazarları ve bölümleri buradan yönetin.
+    </p>
+  </div>
+
+  <div id="authStatusBox" class="bg-[#EFE9D9] border border-[#141413] px-3.5 py-2 font-mono-meta text-xs self-start sm:self-auto shrink-0">
+    <span id="authStateText" class="font-bold text-[#8B1E1E]">🔒 Giriş: admin / admin123</span>
+  </div>
+</div>
+
+<!-- GİRİŞ FORMU (OTURUM KAPALIYKEN) -->
+<div id="loginPanel" class="max-w-md mx-auto my-6 sm:my-10 border-2 border-[#141413] bg-[#FAF7F0] p-5 sm:p-7 shadow-md">
+  <div class="bg-[#8B1E1E] text-white font-mono-meta text-[11px] font-bold uppercase px-2.5 py-1 text-center mb-4">
+    MİSAFİR DERGİ & GAZETE • YÖNETİCİ GİRİŞİ
+  </div>
+  <h2 class="font-headline text-2xl font-black text-center mb-1">Yazı İşleri Masası</h2>
+  <p class="text-xs font-mono-meta text-[#524F49] text-center mb-5">
+    Varsayılan Kullanıcı: <strong>admin</strong> • Şifre: <strong>admin123</strong>
+  </p>
+
+  <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+    <div>
+      <label class="block font-mono-meta text-xs uppercase font-bold mb-1">Kullanıcı Adı</label>
+      <input id="loginUser" type="text" value="admin" required class="w-full border border-[#141413] bg-white px-3 py-2.5 text-sm" />
+    </div>
+    <div>
+      <label class="block font-mono-meta text-xs uppercase font-bold mb-1">Şifre</label>
+      <input id="loginPass" type="password" value="admin123" required class="w-full border border-[#141413] bg-white px-3 py-2.5 text-sm" />
+    </div>
+    <p id="loginErr" class="text-xs text-[#8B1E1E] font-bold hidden"></p>
+    <button type="submit" class="w-full bg-[#141413] hover:bg-[#8B1E1E] text-[#F6F2E7] font-mono-meta text-xs font-bold uppercase py-3.5 transition">
+      Yönetim Masasını Aç &rarr;
+    </button>
+  </form>
+</div>
+
+<!-- YÖNETİM PANELİ ANA ÇALIŞMA ALANI -->
+<div id="adminWorkspace" class="hidden space-y-6">
+
+  <!-- İSTATİSTİK ÖZET KARTLARI (RESPONSIVE 2x2 / 4 SÜTUN) -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+    <div class="border-2 border-[#141413] bg-[#FAF7F0] p-3.5 sm:p-4">
+      <span class="font-mono-meta text-[10px] sm:text-xs uppercase font-bold text-[#8B1E1E]">GAZETE YAZILARI</span>
+      <p class="font-headline text-2xl sm:text-4xl font-black mt-1">{{ articles | length }}</p>
+      <span class="font-mono-meta text-[10px] text-[#524F49]">Manşet, Köşe & Dosya</span>
+    </div>
+    <div class="border-2 border-[#141413] bg-[#FAF7F0] p-3.5 sm:p-4">
+      <span class="font-mono-meta text-[10px] sm:text-xs uppercase font-bold text-[#8B1E1E]">E-DERGİ SAYILARI (PDF)</span>
+      <p class="font-headline text-2xl sm:text-4xl font-black mt-1">{{ issues | length }}</p>
+      <span class="font-mono-meta text-[10px] text-[#524F49]">3B Flipbook Yayında</span>
+    </div>
+    <div class="border-2 border-[#141413] bg-[#FAF7F0] p-3.5 sm:p-4">
+      <span class="font-mono-meta text-[10px] sm:text-xs uppercase font-bold text-[#8B1E1E]">TOPLAM OKUNMA</span>
+      <p class="font-headline text-2xl sm:text-4xl font-black mt-1">{{ total_views }}</p>
+      <span class="font-mono-meta text-[10px] text-[#524F49]">Tekil Makale Görüntüleme</span>
+    </div>
+    <div class="border-2 border-[#141413] bg-[#FAF7F0] p-3.5 sm:p-4">
+      <span class="font-mono-meta text-[10px] sm:text-xs uppercase font-bold text-[#8B1E1E]">YAZAR & BÖLÜM</span>
+      <p class="font-headline text-2xl sm:text-4xl font-black mt-1">{{ authors | length }} / {{ categories | length }}</p>
+      <span class="font-mono-meta text-[10px] text-[#524F49]">Yazar Kadrosu / Kategori</span>
+    </div>
+  </div>
+
+  <!-- SEKME (TAB) MENÜSÜ (MOBİLDE KAYDIRILABİLİR) -->
+  <div class="border-b-2 border-[#141413] flex items-center gap-2 overflow-x-auto no-scrollbar pt-2">
+    <button onclick="switchAdminTab('overview')" id="tabBtn-overview" class="admin-tab-btn bg-[#141413] text-[#F6F2E7] font-mono-meta text-xs font-bold uppercase px-4 py-2.5 whitespace-nowrap transition">
+      📰 1. Manşet & Yazı Masası
+    </button>
+    <button onclick="switchAdminTab('editor')" id="tabBtn-editor" class="admin-tab-btn bg-[#EFE9D9] text-[#141413] hover:bg-[#141413] hover:text-[#F6F2E7] font-mono-meta text-xs font-bold uppercase px-4 py-2.5 whitespace-nowrap transition">
+      ✒ 2. Yazı Editörü (Yeni / Düzenle)
+    </button>
+    <button onclick="switchAdminTab('issues')" id="tabBtn-issues" class="admin-tab-btn bg-[#EFE9D9] text-[#141413] hover:bg-[#141413] hover:text-[#F6F2E7] font-mono-meta text-xs font-bold uppercase px-4 py-2.5 whitespace-nowrap transition">
+      📖 3. E-Dergi (PDF Flipbook) Yönetimi
+    </button>
+    <button onclick="switchAdminTab('authors')" id="tabBtn-authors" class="admin-tab-btn bg-[#EFE9D9] text-[#141413] hover:bg-[#141413] hover:text-[#F6F2E7] font-mono-meta text-xs font-bold uppercase px-4 py-2.5 whitespace-nowrap transition">
+      👥 4. Yazarlar & Bölümler
+    </button>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- SEKME 1: MANŞET & YAZI MASASI                             -->
+  <!-- ========================================================= -->
+  <div id="tabContent-overview" class="admin-tab-pane space-y-6">
+    <div class="border-2 border-[#141413] bg-[#FAF7F0] p-4 sm:p-6">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b border-[#141413]">
+        <div>
+          <h2 class="font-headline text-xl sm:text-2xl font-black">Gazete Yazıları & Canlı Manşet Yönetimi</h2>
+          <p class="text-xs text-[#524F49]">Bir yazının 1. sayfadaki konumunu (Ana Manşet, Sürmanşet, Köşe Yazısı) anında değiştirebilir veya düzenleyebilirsiniz.</p>
+        </div>
+        <button onclick="openNewArticleEditor()" class="bg-[#8B1E1E] hover:bg-[#141413] text-white font-mono-meta text-xs font-bold uppercase px-4 py-2 transition">
+          + Yeni Gazete Yazısı Yaz
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-xs sm:text-sm">
+          <thead>
+            <tr class="border-b-2 border-[#141413] font-mono-meta text-[11px] uppercase bg-[#EFE9D9]">
+              <th class="p-2.5">Başlık & Bölüm</th>
+              <th class="p-2.5 hidden md:table-cell">Yazar</th>
+              <th class="p-2.5">Gazete Konumu (Manşet)</th>
+              <th class="p-2.5 hidden sm:table-cell">Durum</th>
+              <th class="p-2.5 text-right">İşlemler</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[#141413]/20">
+            {% for art in articles %}
+              <tr class="hover:bg-[#EFE9D9]/50 transition">
+                <td class="p-2.5">
+                  <a href="/yazi/{{ art.slug }}" target="_blank" class="font-headline font-bold text-sm sm:text-base hover:text-[#8B1E1E] hover:underline block">
+                    {{ art.title }}
+                  </a>
+                  <span class="font-mono-meta text-[10px] text-[#8B1E1E] uppercase font-bold">
+                    {{ art.category.name if art.category else 'Genel' }} • 👁 {{ art.view_count }}
+                  </span>
+                </td>
+                <td class="p-2.5 font-mono-meta text-xs hidden md:table-cell">
+                  {{ art.author.name if art.author else '-' }}
+                </td>
+                <td class="p-2.5">
+                  <select
+                    onchange="changeArticlePlacement({{ art.id }}, this.value)"
+                    class="border border-[#141413] bg-white px-2 py-1.5 font-mono-meta text-xs font-bold w-full sm:w-auto"
+                  >
+                    <option value="ana_manset" {% if art.placement == 'ana_manset' %}selected{% endif %}>★ Ana Manşet</option>
+                    <option value="surmanset" {% if art.placement == 'surmanset' %}selected{% endif %}>▲ Sürmanşet</option>
+                    <option value="ikincil_manset" {% if art.placement == 'ikincil_manset' %}selected{% endif %}>◆ İkincil Manşet</option>
+                    <option value="kose_yazisi" {% if art.placement == 'kose_yazisi' %}selected{% endif %}>✒ Köşe Yazısı</option>
+                    <option value="standart" {% if art.placement == 'standart' %}selected{% endif %}>📰 Standart</option>
+                  </select>
+                </td>
+                <td class="p-2.5 hidden sm:table-cell">
+                  <button
+                    onclick="toggleArticlePublish({{ art.id }}, {{ 'false' if art.is_published else 'true' }})"
+                    class="font-mono-meta text-[10px] px-2 py-1 font-bold uppercase {% if art.is_published %}bg-green-800 text-white{% else %}bg-gray-400 text-black{% endif %}"
+                  >
+                    {{ 'YAYINDA' if art.is_published else 'TASLAK' }}
+                  </button>
+                </td>
+                <td class="p-2.5 text-right whitespace-nowrap space-x-2 font-mono-meta text-xs">
+                  <button onclick="loadArticleForEdit({{ art.id }})" class="underline font-bold text-[#141413] hover:text-[#8B1E1E]">
+                    Düzenle
+                  </button>
+                  <button onclick="deleteArticle({{ art.id }})" class="underline font-bold text-[#8B1E1E]">
+                    Sil
+                  </button>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- SEKME 2: YAZI EDİTÖRÜ (YENİ EKLE VEYA DÜZENLE)            -->
+  <!-- ========================================================= -->
+  <div id="tabContent-editor" class="admin-tab-pane hidden">
+    <div class="border-2 border-[#141413] bg-[#FAF7F0] p-4 sm:p-6">
+      <div class="border-b border-[#141413] pb-3 mb-5 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <span id="editorModeBadge" class="font-mono-meta text-[10px] bg-[#141413] text-[#F6F2E7] px-2 py-0.5 font-bold uppercase">
+            YENİ YAZI MODU
+          </span>
+          <h2 id="editorHeading" class="font-headline text-xl sm:text-2xl font-black mt-1">
+            Gazete / Blog Yazısı Oluştur
+          </h2>
+        </div>
+        <button type="button" onclick="resetArticleEditor()" class="font-mono-meta text-xs underline text-[#8B1E1E]">
+          Formu Temizle
+        </button>
+      </div>
+
+      <form id="articleCreateForm" onsubmit="handleSaveArticle(event)" class="space-y-4 text-sm">
+        <input type="hidden" id="editArticleId" value="" />
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <div class="lg:col-span-8">
+            <label class="block font-mono-meta text-xs font-bold mb-1">Gazete Başlığı *</label>
+            <input id="artTitle" type="text" required placeholder="Örn: Sahaflar Çarşısı'nda Kayıp Bir El Yazmasının İzinde" class="w-full border border-[#141413] bg-white px-3 py-2.5 font-headline text-base" />
+          </div>
+          <div class="lg:col-span-4">
+            <label class="block font-mono-meta text-xs font-bold mb-1">Gazetedeki Konumu (Manşet) *</label>
+            <select id="artPlacement" class="w-full border border-[#141413] bg-[#EFE9D9] px-3 py-2.5 font-mono-meta text-xs font-bold text-[#8B1E1E]">
+              <option value="ana_manset">★ Ana Manşet (1. Sayfa Orta)</option>
+              <option value="surmanset">▲ Sürmanşet (1. Sayfa Üst)</option>
+              <option value="ikincil_manset">◆ İkincil Manşet (Sol Sütun)</option>
+              <option value="kose_yazisi">✒ Köşe Yazısı (Sağ Sütun)</option>
+              <option value="standart" selected>📰 Standart / Orta Sayfa</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-mono-meta text-xs font-bold mb-1">Spot (Alt Başlık / Özet Cümlesi)</label>
+          <input id="artSubtitle" type="text" placeholder="Manşet altında italik görünecek giriş özeti..." class="w-full border border-[#141413] bg-white px-3 py-2" />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="block font-mono-meta text-xs font-bold mb-1">Bölüm (Kategori)</label>
+            <select id="artCategory" class="w-full border border-[#141413] bg-white px-3 py-2">
+              {% for cat in categories %}
+                <option value="{{ cat.id }}">{{ cat.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block font-mono-meta text-xs font-bold mb-1">Yazar</label>
+            <select id="artAuthor" class="w-full border border-[#141413] bg-white px-3 py-2">
+              {% for author in authors %}
+                <option value="{{ author.id }}">{{ author.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block font-mono-meta text-xs font-bold mb-1">Okuma Süresi (Dakika)</label>
+            <input id="artReadingTime" type="number" value="5" min="1" max="60" class="w-full border border-[#141413] bg-white px-3 py-2" />
+          </div>
+        </div>
+
+        <!-- FOTOĞRAF YÜKLEME VEYA URL GİRME -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end bg-[#EFE9D9]/70 p-3.5 border border-[#141413]/40">
+          <div class="md:col-span-6">
+            <label class="block font-mono-meta text-xs font-bold mb-1">Kapak Fotoğrafı URL</label>
+            <input id="artCoverUrl" type="text" placeholder="https://... veya sağdan dosya yükleyin" class="w-full border border-[#141413] bg-white px-3 py-2 text-xs" />
+          </div>
+          <div class="md:col-span-6">
+            <label class="block font-mono-meta text-xs font-bold text-[#8B1E1E] mb-1">📷 Veya Cihazdan Fotoğraf Yükle</label>
+            <input type="file" accept="image/*" onchange="uploadEditorImage(this)" class="w-full text-xs font-mono-meta" />
+          </div>
+          <div class="md:col-span-6">
+            <label class="block font-mono-meta text-xs font-bold mb-1">Fotoğraf Altı Notu (Caption)</label>
+            <input id="artCaption" type="text" placeholder="Örn: Beyoğlu pasajları, Kasım 2026" class="w-full border border-[#141413] bg-white px-3 py-1.5 text-xs" />
+          </div>
+          <div class="md:col-span-6">
+            <label class="block font-mono-meta text-xs font-bold mb-1">Vurgu Alıntısı (Pull Quote)</label>
+            <input id="artQuote" type="text" placeholder="Yazı içinden öne çıkarılacak çarpıcı cümle..." class="w-full border border-[#141413] bg-white px-3 py-1.5 text-xs" />
+          </div>
+        </div>
+
+        <!-- ZENGİN METİN KISAYOL ARAÇ ÇUBUĞU VE İÇERİK -->
+        <div>
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+            <label class="font-mono-meta text-xs font-bold">Makale Metni *</label>
+            <div class="flex items-center gap-1.5 font-mono-meta text-[11px]">
+              <button type="button" onclick="insertTag('<h3>', '</h3>')" class="border border-[#141413] bg-white px-2 py-0.5 hover:bg-[#141413] hover:text-white">+ Alt Başlık (H3)</button>
+              <button type="button" onclick="insertTag('<strong>', '</strong>')" class="border border-[#141413] bg-white px-2 py-0.5 hover:bg-[#141413] hover:text-white"><strong>B</strong> Kalın</button>
+              <button type="button" onclick="insertTag('<em>', '</em>')" class="border border-[#141413] bg-white px-2 py-0.5 hover:bg-[#141413] hover:text-white"><em>I</em> İtalik</button>
+            </div>
+          </div>
+          <textarea id="artContent" rows="9" required placeholder="Paragrafları buraya yazın. İlk harf gazetede otomatik olarak büyük (Drop-Cap) basılacaktır..." class="w-full border border-[#141413] bg-white p-3 font-body leading-relaxed"></textarea>
+        </div>
+
+        <div id="artCreateMsg" class="text-xs font-mono-meta font-bold hidden p-3"></div>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <button type="submit" id="artSubmitBtn" class="bg-[#141413] hover:bg-[#8B1E1E] text-[#F6F2E7] font-mono-meta text-xs font-bold uppercase px-6 py-3.5 transition">
+            ✒ Yazıyı Gazetede Yayınla
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- SEKME 3: E-DERGİ (PDF FLIPBOOK) YÖNETİMİ                  -->
+  <!-- ========================================================= -->
+  <div id="tabContent-issues" class="admin-tab-pane hidden space-y-6">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      
+      <!-- SOL (5 BİRİM): YENİ PDF DERGİ SAYISI YÜKLEME -->
+      <div class="lg:col-span-5 border-2 border-[#141413] bg-[#FAF7F0] p-4 sm:p-5">
+        <div class="border-b border-[#141413] pb-2 mb-4 flex items-center justify-between">
+          <h2 class="font-headline text-xl font-black">Yeni E-Dergi (PDF) Yükle</h2>
+          <span class="font-mono-meta text-[10px] bg-[#8B1E1E] text-white px-2 py-0.5 font-bold">3B FLIPBOOK</span>
+        </div>
+
+        <form id="pdfUploadForm" onsubmit="handleUploadIssue(event)" class="space-y-3.5 text-sm">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block font-mono-meta text-xs font-bold mb-1">Sayı No *</label>
+              <input name="issue_number" type="number" value="15" required class="w-full border border-[#141413] bg-white px-3 py-2" />
+            </div>
+            <div>
+              <label class="block font-mono-meta text-xs font-bold mb-1">Ay / Yıl *</label>
+              <input name="month_year" type="text" value="Aralık 2026" required class="w-full border border-[#141413] bg-white px-3 py-2" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-mono-meta text-xs font-bold mb-1">Sayı Başlığı (Dosya Konusu) *</label>
+            <input name="title" type="text" placeholder="Örn: Kış Anlatıları ve Yalnızlık Dosyası" required class="w-full border border-[#141413] bg-white px-3 py-2" />
+          </div>
+
+          <div>
+            <label class="block font-mono-meta text-xs font-bold mb-1">Alt Başlık (Spot)</label>
+            <input name="subtitle" type="text" placeholder="Örn: Edebiyatımızda kar, sessizlik ve içe dönüş..." class="w-full border border-[#141413] bg-white px-3 py-2" />
+          </div>
+
+          <div>
+            <label class="block font-mono-meta text-xs font-bold mb-1">Sayı Tanıtım Metni</label>
+            <textarea name="description" rows="2" class="w-full border border-[#141413] bg-white px-3 py-2"></textarea>
+          </div>
+
+          <div class="p-3 bg-[#EFE9D9] border border-[#141413]/40">
+            <label class="block font-mono-meta text-xs font-bold text-[#8B1E1E] mb-1">📄 Dergi PDF Dosyası Seçin *</label>
+            <input name="pdf_file" type="file" accept="application/pdf" required class="w-full text-xs font-mono-meta" />
+            <p class="text-[11px] text-[#524F49] mt-1">
+              Yüklenen PDF otomatik olarak sayfalara ayrılır ve 3B sayfa çevirmeli okuyucuda yayına girer.
+            </p>
+          </div>
+
+          <div>
+            <label class="block font-mono-meta text-xs font-bold mb-1">Özel Kapak Görseli (Opsiyonel)</label>
+            <input name="cover_image" type="file" accept="image/*" class="w-full text-xs font-mono-meta" />
+            <p class="text-[11px] text-[#524F49] mt-0.5">Seçilmezse PDF'in 1. sayfası otomatik kapak yapılır.</p>
+          </div>
+
+          <div id="issueUploadMsg" class="text-xs font-mono-meta font-bold hidden p-2"></div>
+
+          <button type="submit" id="issueSubmitBtn" class="w-full bg-[#8B1E1E] hover:bg-[#141413] text-white font-mono-meta text-xs font-bold uppercase py-3.5 transition">
+            📤 PDF Sayısını Yükle ve Flipbook Oluştur
+          </button>
+        </form>
+      </div>
+
+      <!-- SAĞ (7 BİRİM): MEVCUT E-DERGİ SAYILARI LİSTESİ -->
+      <div class="lg:col-span-7 border-2 border-[#141413] bg-[#FAF7F0] p-4 sm:p-5">
+        <h2 class="font-headline text-xl font-black border-b border-[#141413] pb-2 mb-4">
+          Yayındaki PDF E-Dergi Sayıları
+        </h2>
+        <div class="space-y-4">
+          {% for issue in issues %}
+            <div class="border border-[#141413]/30 bg-white p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div class="flex items-center gap-3.5">
+                <img src="{{ issue.cover_image_url }}" alt="" class="w-14 h-20 object-cover border border-[#141413] shrink-0" />
+                <div>
+                  <div class="flex items-center gap-2 font-mono-meta text-[10px]">
+                    <span class="bg-[#141413] text-white px-2 py-0.5 font-bold">SAYI #{{ issue.issue_number }}</span>
+                    <span>{{ issue.month_year }} • {{ issue.page_count }} Sayfa</span>
+                    {% if issue.is_featured %}
+                      <span class="bg-[#8B1E1E] text-white px-2 py-0.5 font-bold">★ VİTRİN SAYISI</span>
+                    {% endif %}
+                  </div>
+                  <h4 class="font-headline font-bold text-base mt-1">{{ issue.title }}</h4>
+                  <p class="text-xs text-[#524F49] line-clamp-1">{{ issue.subtitle }}</p>
+                </div>
+              </div>
+              <div class="flex flex-wrap items-center gap-2 font-mono-meta text-xs self-end sm:self-center shrink-0">
+                <a href="/e-dergi/{{ issue.issue_number }}" target="_blank" class="border border-[#141413] px-2.5 py-1 hover:bg-[#141413] hover:text-white">
+                  📖 Flipbook
+                </a>
+                {% if not issue.is_featured %}
+                  <button onclick="featureIssue({{ issue.id }})" class="border border-[#8B1E1E] text-[#8B1E1E] px-2.5 py-1 font-bold hover:bg-[#8B1E1E] hover:text-white">
+                    ★ Vitrine Al
+                  </button>
+                {% endif %}
+                <button onclick="deleteIssue({{ issue.id }})" class="text-[#8B1E1E] font-bold px-2 py-1 hover:underline">
+                  Sil
+                </button>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- SEKME 4: YAZARLAR & GAZETE BÖLÜMLERİ (KATEGORİLER)        -->
+  <!-- ========================================================= -->
+  <div id="tabContent-authors" class="admin-tab-pane hidden">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      
+      <!-- YAZAR YÖNETİMİ (6 BİRİM) -->
+      <div class="lg:col-span-6 border-2 border-[#141413] bg-[#FAF7F0] p-4 sm:p-5 space-y-5">
+        <h2 class="font-headline text-xl font-black border-b border-[#141413] pb-2">
+          Yazar Kadrosu Yönetimi
+        </h2>
+
+        <form onsubmit="handleCreateAuthor(event)" class="space-y-3 text-sm bg-[#EFE9D9]/60 p-3.5 border border-[#141413]/30">
+          <h3 class="font-mono-meta text-xs font-bold uppercase text-[#8B1E1E]">+ Yeni Yazar Ekle</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input id="newAuthorName" type="text" required placeholder="Ad Soyad *" class="border border-[#141413] bg-white px-3 py-2" />
+            <input id="newAuthorTitle" type="text" placeholder="Unvan / Köşe Adı (Örn: Eleştirmen)" class="border border-[#141413] bg-white px-3 py-2" />
+          </div>
+          <input id="newAuthorAvatar" type="text" placeholder="Profil Fotoğrafı URL (Opsiyonel)" class="w-full border border-[#141413] bg-white px-3 py-2 text-xs" />
+          <textarea id="newAuthorBio" rows="2" placeholder="Kısa yazar biyografisi..." class="w-full border border-[#141413] bg-white px-3 py-2 text-xs"></textarea>
+          <button type="submit" class="bg-[#141413] hover:bg-[#8B1E1E] text-white font-mono-meta text-xs font-bold uppercase px-4 py-2 transition">
+            Yazarı Kaydet
+          </button>
+        </form>
+
+        <div class="divide-y divide-[#141413]/20">
+          {% for author in authors %}
+            <div class="py-2.5 flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                {% if author.avatar_url %}
+                  <img src="{{ author.avatar_url }}" alt="" class="w-10 h-10 rounded-full object-cover border border-[#141413]" />
+                {% endif %}
+                <div>
+                  <p class="font-headline font-bold text-sm">{{ author.name }}</p>
+                  <p class="font-mono-meta text-[11px] text-[#524F49]">{{ author.title }}</p>
+                </div>
+              </div>
+              <button onclick="deleteAuthor({{ author.id }})" class="font-mono-meta text-xs text-[#8B1E1E] font-bold hover:underline">
+                Sil
+              </button>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- KATEGORİ / BÖLÜM YÖNETİMİ (6 BİRİM) -->
+      <div class="lg:col-span-6 border-2 border-[#141413] bg-[#FAF7F0] p-4 sm:p-5 space-y-5">
+        <h2 class="font-headline text-xl font-black border-b border-[#141413] pb-2">
+          Gazete Bölümleri (Kategoriler)
+        </h2>
+
+        <form onsubmit="handleCreateCategory(event)" class="space-y-3 text-sm bg-[#EFE9D9]/60 p-3.5 border border-[#141413]/30">
+          <h3 class="font-mono-meta text-xs font-bold uppercase text-[#8B1E1E]">+ Yeni Bölüm Ekle</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input id="newCatName" type="text" required placeholder="Bölüm Adı (Örn: Tarih & Bellek) *" class="border border-[#141413] bg-white px-3 py-2" />
+            <input id="newCatSlug" type="text" required placeholder="Kısa URL (Örn: tarih-bellek) *" class="border border-[#141413] bg-white px-3 py-2 font-mono-meta text-xs" />
+          </div>
+          <input id="newCatDesc" type="text" placeholder="Bölüm açıklaması..." class="w-full border border-[#141413] bg-white px-3 py-2 text-xs" />
+          <button type="submit" class="bg-[#141413] hover:bg-[#8B1E1E] text-white font-mono-meta text-xs font-bold uppercase px-4 py-2 transition">
+            Bölümü Ekle
+          </button>
+        </form>
+
+        <div class="divide-y divide-[#141413]/20">
+          {% for cat in categories %}
+            <div class="py-2.5 flex items-center justify-between gap-3">
+              <div>
+                <p class="font-headline font-bold text-sm">{{ cat.name }} <span class="font-mono-meta text-xs text-[#524F49]">(/{{ cat.slug }})</span></p>
+                <p class="text-xs text-[#524F49]">{{ cat.description }}</p>
+              </div>
+              <button onclick="deleteCategory({{ cat.id }})" class="font-mono-meta text-xs text-[#8B1E1E] font-bold hover:underline">
+                Sil
+              </button>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let adminToken = localStorage.getItem('misfir_token') || '';
+
+  function switchAdminTab(tabName) {
+    document.querySelectorAll('.admin-tab-pane').forEach(el => el.classList.add('hidden'));
+    document.getElementById(`tabContent-${tabName}`).classList.remove('hidden');
+
+    document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+      btn.className = 'admin-tab-btn bg-[#EFE9D9] text-[#141413] hover:bg-[#141413] hover:text-[#F6F2E7] font-mono-meta text-xs font-bold uppercase px-4 py-2.5 whitespace-nowrap transition';
+    });
+    const activeBtn = document.getElementById(`tabBtn-${tabName}`);
+    if (activeBtn) {
+      activeBtn.className = 'admin-tab-btn bg-[#141413] text-[#F6F2E7] font-mono-meta text-xs font-bold uppercase px-4 py-2.5 whitespace-nowrap transition';
+    }
+  }
+
+  function updateAuthUI() {
+    const loginPanel = document.getElementById('loginPanel');
+    const workspace = document.getElementById('adminWorkspace');
+    const stateText = document.getElementById('authStateText');
+    if (adminToken) {
+      loginPanel.classList.add('hidden');
+      workspace.classList.remove('hidden');
+      stateText.innerHTML = '✅ Baş Editör (Misafir) • <button onclick="logoutAdmin()" class="underline text-[#8B1E1E] font-bold">Çıkış</button>';
+    } else {
+      loginPanel.classList.remove('hidden');
+      workspace.classList.add('hidden');
+      stateText.textContent = '🔒 Giriş: admin / admin123';
+    }
+  }
+
+  function logoutAdmin() {
+    localStorage.removeItem('misfir_token');
+    adminToken = '';
+    updateAuthUI();
+  }
+
+  async function handleAdminLogin(e) {
+    e.preventDefault();
+    const username = document.getElementById('loginUser').value;
+    const password = document.getElementById('loginPass').value;
+    const errEl = document.getElementById('loginErr');
+    errEl.classList.add('hidden');
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Giriş başarısız');
+      adminToken = data.access_token;
+      localStorage.setItem('misfir_token', adminToken);
+      updateAuthUI();
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.classList.remove('hidden');
+    }
+  }
+
+  function insertTag(openTag, closeTag) {
+    const ta = document.getElementById('artContent');
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const selected = ta.value.substring(start, end) || 'Metin';
+    ta.value = ta.value.substring(0, start) + openTag + selected + closeTag + ta.value.substring(end);
+    ta.focus();
+  }
+
+  async function uploadEditorImage(input) {
+    if (!input.files || !input.files[0]) return;
+    const formData = new FormData();
+    formData.append('image', input.files[0]);
+    try {
+      const res = await fetch('/api/upload/image', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${adminToken}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Görsel yüklenemedi');
+      document.getElementById('artCoverUrl').value = data.url;
+    } catch (err) {
+      alert('Fotoğraf yükleme hatası: ' + err.message);
+    }
+  }
+
+  function openNewArticleEditor() {
+    resetArticleEditor();
+    switchAdminTab('editor');
+  }
+
+  function resetArticleEditor() {
+    document.getElementById('editArticleId').value = '';
+    document.getElementById('artTitle').value = '';
+    document.getElementById('artSubtitle').value = '';
+    document.getElementById('artCoverUrl').value = '';
+    document.getElementById('artCaption').value = '';
+    document.getElementById('artQuote').value = '';
+    document.getElementById('artContent').value = '';
+    document.getElementById('editorModeBadge').textContent = 'YENİ YAZI MODU';
+    document.getElementById('editorHeading').textContent = 'Gazete / Blog Yazısı Oluştur';
+    document.getElementById('artSubmitBtn').textContent = '✒ Yazıyı Gazetede Yayınla';
+  }
+
+  async function loadArticleForEdit(articleId) {
+    try {
+      const res = await fetch(`/api/articles/${articleId}`);
+      const art = await res.json();
+      document.getElementById('editArticleId').value = art.id;
+      document.getElementById('artTitle').value = art.title || '';
+      document.getElementById('artSubtitle').value = art.subtitle || '';
+      document.getElementById('artPlacement').value = art.placement || 'standart';
+      document.getElementById('artCategory').value = art.category_id || 1;
+      document.getElementById('artAuthor').value = art.author_id || 1;
+      document.getElementById('artReadingTime').value = art.reading_time || 5;
+      document.getElementById('artCoverUrl').value = art.cover_image_url || '';
+      document.getElementById('artCaption').value = art.image_caption || '';
+      document.getElementById('artQuote').value = art.pull_quote || '';
+      document.getElementById('artContent').value = art.content || '';
+
+      document.getElementById('editorModeBadge').textContent = `DÜZENLEME MODU (ID #${art.id})`;
+      document.getElementById('editorHeading').textContent = 'Mevcut Yazıyı Güncelle';
+      document.getElementById('artSubmitBtn').textContent = '💾 Değişiklikleri Kaydet';
+      switchAdminTab('editor');
+    } catch (e) {
+      alert('Yazı bilgileri alınamadı.');
+    }
+  }
+
+  async function handleSaveArticle(e) {
+    e.preventDefault();
+    const editId = document.getElementById('editArticleId').value;
+    const msg = document.getElementById('artCreateMsg');
+    const payload = {
+      title: document.getElementById('artTitle').value,
+      subtitle: document.getElementById('artSubtitle').value,
+      placement: document.getElementById('artPlacement').value,
+      category_id: parseInt(document.getElementById('artCategory').value),
+      author_id: parseInt(document.getElementById('artAuthor').value),
+      reading_time: parseInt(document.getElementById('artReadingTime').value) || 5,
+      cover_image_url: document.getElementById('artCoverUrl').value,
+      image_caption: document.getElementById('artCaption').value,
+      pull_quote: document.getElementById('artQuote').value,
+      content: document.getElementById('artContent').value,
+      is_published: true,
+    };
+
+    try {
+      const url = editId ? `/api/articles/${editId}` : '/api/articles';
+      const method = editId ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'İşlem başarısız');
+      msg.className = 'text-xs font-mono-meta font-bold p-3 bg-green-100 text-green-900 border border-green-800';
+      msg.innerHTML = `✅ Yazı kaydedildi! <a href="/yazi/${data.slug}" class="underline">Yazıyı Gör &rarr;</a>`;
+      msg.classList.remove('hidden');
+      setTimeout(() => window.location.reload(), 900);
+    } catch (err) {
+      msg.className = 'text-xs font-mono-meta font-bold p-3 bg-red-100 text-red-900 border border-red-800';
+      msg.textContent = '❌ ' + err.message;
+      msg.classList.remove('hidden');
+    }
+  }
+
+  async function handleUploadIssue(e) {
+    e.preventDefault();
+    const form = document.getElementById('pdfUploadForm');
+    const msg = document.getElementById('issueUploadMsg');
+    const btn = document.getElementById('issueSubmitBtn');
+    const formData = new FormData(form);
+
+    btn.disabled = true;
+    btn.textContent = '⏳ PDF İşleniyor & Flipbook Sayfaları Üretiliyor...';
+    msg.classList.add('hidden');
+
+    try {
+      const res = await fetch('/api/issues/upload', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${adminToken}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Yükleme hatası');
+      msg.className = 'text-xs font-mono-meta font-bold p-2 bg-green-100 text-green-900 border border-green-800';
+      msg.innerHTML = `✅ Sayı #${data.issue_number} yüklendi! <a href="/e-dergi/${data.issue_number}" class="underline">Flipbook'u Aç &rarr;</a>`;
+      msg.classList.remove('hidden');
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (err) {
+      msg.className = 'text-xs font-mono-meta font-bold p-2 bg-red-100 text-red-900 border border-red-800';
+      msg.textContent = '❌ ' + err.message;
+      msg.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '📤 PDF Sayısını Yükle ve Flipbook Oluştur';
+    }
+  }
+
+  async function changeArticlePlacement(id, placement) {
+    await fetch(`/api/articles/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({ placement }),
+    });
+    window.location.reload();
+  }
+
+  async function toggleArticlePublish(id, is_published) {
+    await fetch(`/api/articles/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({ is_published }),
+    });
+    window.location.reload();
+  }
+
+  async function deleteArticle(id) {
+    if (!confirm('Bu yazıyı silmek istediğinize emin misiniz?')) return;
+    await fetch(`/api/articles/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${adminToken}` },
+    });
+    window.location.reload();
+  }
+
+  async function featureIssue(id) {
+    await fetch(`/api/issues/${id}/feature`, {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${adminToken}` },
+    });
+    window.location.reload();
+  }
+
+  async function deleteIssue(id) {
+    if (!confirm('Bu dergi sayısını silmek istediğinize emin misiniz?')) return;
+    await fetch(`/api/issues/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${adminToken}` },
+    });
+    window.location.reload();
+  }
+
+  async function handleCreateAuthor(e) {
+    e.preventDefault();
+    const payload = {
+      name: document.getElementById('newAuthorName').value,
+      title: document.getElementById('newAuthorTitle').value || 'Yazar',
+      avatar_url: document.getElementById('newAuthorAvatar').value || '',
+      bio: document.getElementById('newAuthorBio').value || '',
+    };
+    const res = await fetch('/api/authors', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) window.location.reload();
+  }
+
+  async function deleteAuthor(id) {
+    if (!confirm('Yazarı silmek istediğinize emin misiniz?')) return;
+    await fetch(`/api/authors/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${adminToken}` },
+    });
+    window.location.reload();
+  }
+
+  async function handleCreateCategory(e) {
+    e.preventDefault();
+    const payload = {
+      name: document.getElementById('newCatName').value,
+      slug: document.getElementById('newCatSlug').value,
+      description: document.getElementById('newCatDesc').value || '',
+    };
+    const res = await fetch('/api/categories', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) window.location.reload();
+  }
+
+  async function deleteCategory(id) {
+    if (!confirm('Bu bölümü silmek istediğinize emin misiniz?')) return;
+    await fetch(`/api/categories/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${adminToken}` },
+    });
+    window.location.reload();
+  }
+
+  document.addEventListener('DOMContentLoaded', updateAuthUI);
+</script>
+{% endblock %}

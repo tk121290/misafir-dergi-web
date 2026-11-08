@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}E-Dergi & Basılı Sayılar Arşivi — MİSAFİR{% endblock %}
+
+{% block content %}
+<div class="mb-8 pb-4 border-b-2 border-[#141413] flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <span class="font-mono-meta text-xs uppercase tracking-widest text-[#8B1E1E] font-bold">
+      MİSAFİR BASILI VE DİJİTAL NÜSHALAR KÜTÜPHANESİ
+    </span>
+    <h1 class="font-headline text-2xl sm:text-5xl font-black mt-1">
+      Sayfa Çevirmeli E-Dergi Arşivi
+    </h1>
+    <p class="font-body text-sm sm:text-base text-[#3A3834] mt-2 max-w-2xl">
+      Misafir Dergi'nin tüm sayılarını gerçek dergi hissiyle sayfalarını çevirerek (3B Flipbook) okuyabilir ya da PDF olarak cihazınıza indirebilirsiniz.
+    </p>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+  {% for issue in issues %}
+    <div class="border-2 border-[#141413] bg-[#FAF7F0] flex flex-col justify-between p-4 sm:p-5 group shadow-sm hover:shadow-xl transition">
+      <div>
+        <div class="flex items-center justify-between font-mono-meta text-xs mb-3 pb-2 border-b border-[#141413]/25">
+          <span class="bg-[#8B1E1E] text-white px-2 py-0.5 font-bold">SAYI #{{ issue.issue_number }}</span>
+          <span class="text-[#524F49] font-bold">{{ issue.month_year }} • {{ issue.page_count }} SAYFA</span>
+        </div>
+
+        <a href="/e-dergi/{{ issue.issue_number }}" class="block relative h-72 sm:h-80 border border-[#141413] overflow-hidden mb-4 bg-[#181816]">
+          <img
+            src="{{ issue.cover_image_url }}"
+            alt="{{ issue.title }}"
+            class="w-full h-full object-cover newspaper-photo group-hover:scale-105 transition duration-500"
+          />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent flex items-end p-4">
+            <span class="bg-[#E6C786] text-[#141413] font-mono-meta text-xs font-bold uppercase px-3 py-1">
+              📖 Flipbook Olarak Aç &rarr;
+            </span>
+          </div>
+        </a>
+
+        <a href="/e-dergi/{{ issue.issue_number }}">
+          <h2 class="font-headline text-xl sm:text-2xl font-black leading-snug group-hover:text-[#8B1E1E] transition">
+            {{ issue.title }}
+          </h2>
+        </a>
+
+        <p class="font-headline italic text-sm text-[#524F49] mt-1">
+          {{ issue.subtitle }}
+        </p>
+
+        <p class="text-sm text-[#2C2A27] mt-3 leading-relaxed">
+          {{ issue.description }}
+        </p>
+      </div>
+
+      <div class="mt-6 pt-4 border-t border-[#141413]/20 grid grid-cols-2 gap-3 font-mono-meta text-xs">
+        <a
+          href="/e-dergi/{{ issue.issue_number }}"
+          class="bg-[#8B1E1E] hover:bg-[#141413] text-white text-center py-2.5 font-bold uppercase transition"
+        >
+          📖 Sayfa Çevir
+        </a>
+        <a
+          href="{{ issue.pdf_url }}"
+          target="_blank"
+          class="border border-[#141413] hover:bg-[#EFE9D9] text-[#141413] text-center py-2.5 font-bold uppercase transition"
+        >
+          ⬇ PDF İndir
+        </a>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

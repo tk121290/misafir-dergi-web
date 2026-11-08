@@ -1,0 +1,411 @@
+{% extends "base.html" %}
+
+{% block title %}{{ article.title }} — MİSAFİR Dergi{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+  <!-- SOL / ANA MAKALE GÖVDESİ (8 BİRİM - ZEN MODUNDA 12 BİRİM ORTALI) -->
+  <article id="articleMainCol" class="lg:col-span-8 lg:pr-6 lg:border-r border-[#141413]/25">
+    
+    <!-- ÜST KATEGORİ, NATURE SAYI KÜNYESİ VE GÖRÜNÜM SEÇİCİ ARAÇ ÇUBUĞU -->
+    <div class="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-b border-[#141413]/30 font-mono-meta text-xs">
+      <div class="flex flex-wrap items-center gap-2">
+        <a href="/" class="hover:underline text-[#524F49]">GÜNCEL YAZILAR</a>
+        <span>/</span>
+        {% if article.category %}
+          <a href="/?kategori={{ article.category.slug }}" class="text-[#8B1E1E] font-bold uppercase hover:underline">
+            {{ article.category.name }}
+          </a>
+        {% else %}
+          <span class="text-[#8B1E1E] font-bold uppercase">MAKALE</span>
+        {% endif %}
+        <span>•</span>
+        {% if article.issue %}
+          <a
+            href="/e-dergi/{{ article.issue.issue_number }}?sayfa={{ article.pdf_page_start or 1 }}"
+            class="bg-[#141413] text-[#E6C786] px-2.5 py-0.5 text-[10px] font-bold hover:bg-[#8B1E1E] hover:text-white transition"
+            title="Bu yazıyı aylık derlenmiş 3B Flipbook içinde aç"
+          >
+            📖 SAYI #{{ article.issue.issue_number }} ({{ article.issue.month_year }}) • s. {{ article.pdf_page_start or 1 }}
+          </a>
+        {% else %}
+          <span class="bg-[#1B5E20] text-white px-2 py-0.5 text-[10px] font-bold">
+            🟢 ERKEN GÖRÜNÜM (AY İÇİ WEB YAYINI)
+          </span>
+        {% endif %}
+      </div>
+
+      <!-- MAKALE GÖRÜNÜM MODU (WEB METNİ / MAKALE PDF'İ) -->
+      <div class="flex flex-wrap items-center gap-1.5 no-print">
+        {% if article_pdf_pages or article.pdf_url %}
+          <button
+            onclick="setArticlePageMode('gazete_ve_pdf')"
+            id="modeBtn-gazete_ve_pdf"
+            class="border border-[#141413] px-2.5 py-1 text-[11px] font-bold transition"
+          >
+            📑 Web Metni + PDF
+          </button>
+          <button
+            onclick="setArticlePageMode('sadece_pdf')"
+            id="modeBtn-sadece_pdf"
+            class="border border-[#141413] px-2.5 py-1 text-[11px] font-bold transition"
+          >
+            📄 Dergi PDF Dizgisi
+          </button>
+          <button
+            onclick="setArticlePageMode('klasik_gazete')"
+            id="modeBtn-klasik_gazete"
+            class="border border-[#141413] px-2.5 py-1 text-[11px] font-bold transition"
+          >
+            📰 Sadece Web Metni
+          </button>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- BAŞLIK VE SPOT -->
+    <h1 class="font-headline text-2xl sm:text-4xl md:text-5xl font-black leading-[1.14] text-[#141413]">
+      {{ article.title }}
+    </h1>
+
+    {% if article.subtitle %}
+      <p class="mt-3 sm:mt-4 font-body text-base sm:text-xl italic text-[#3A3834] leading-relaxed">
+        {{ article.subtitle }}
+      </p>
+    {% endif %}
+
+    <!-- YAZAR, OKUMA SÜRESİ VE OKUYUCU KONFOR ARAÇ ÇUBUĞU -->
+    <div class="my-5 py-3 border-y border-[#141413] flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        {% if article.author and article.author.avatar_url %}
+          <img src="{{ article.author.avatar_url }}" alt="{{ article.author.name }}" class="w-11 h-11 rounded-full object-cover border border-[#141413] newspaper-photo" />
+        {% endif %}
+        <div>
+          <p class="font-headline font-bold text-sm text-[#141413]">
+            {{ article.author.name if article.author else 'Misafir Yazı İşleri' }}
+          </p>
+          <p class="font-mono-meta text-[11px] text-[#524F49]">
+            {{ article.author.title if article.author else 'Dergi Yazarı' }} • ⏱ {{ article.reading_time }} dk okuma • 👁 {{ article.view_count }}
+          </p>
+        </div>
+      </div>
+
+      <!-- OKUYUCU KONFOR & NATURE MAKALE ARAÇLARI -->
+      <div class="flex flex-wrap items-center gap-1.5 font-mono-meta text-[11px] no-print">
+        <div class="flex items-center border border-[#141413]/40 bg-[#EFE9D9]">
+          <button onclick="setFontSizePref('sm')" class="px-2 py-1 hover:bg-[#141413] hover:text-white transition" title="Küçük Punto">A-</button>
+          <button onclick="setFontSizePref('md')" class="px-2 py-1 border-x border-[#141413]/30 hover:bg-[#141413] hover:text-white transition" title="Standart Punto">A</button>
+          <button onclick="setFontSizePref('lg')" class="px-2 py-1 hover:bg-[#141413] hover:text-white transition font-bold" title="Büyük Punto">A+</button>
+        </div>
+        <button
+          onclick="toggleZenMode()"
+          class="border border-[#141413]/50 bg-[#FAF7F0] hover:bg-[#141413] hover:text-white px-2.5 py-1 font-bold transition"
+          title="Yan sütunları gizle ve sadece metne odaklan"
+        >
+          🧘 Odak Modu
+        </button>
+        <button
+          onclick="toggleColumns()"
+          id="colToggleBtn"
+          class="hidden md:inline-block border border-[#141413]/50 bg-[#FAF7F0] hover:bg-[#141413] hover:text-white px-2.5 py-1 transition"
+        >
+          Çift Sütun
+        </button>
+        <button
+          onclick="saveCurrentArticleToClips()"
+          id="saveArticleBtn"
+          class="border border-[#141413] bg-[#EFE9D9] hover:bg-[#8B1E1E] hover:text-white px-2.5 py-1 font-bold transition"
+        >
+          🔖 Küpüre Kaydet
+        </button>
+        {% if article.pdf_url %}
+          <a
+            href="{{ article.pdf_url }}"
+            target="_blank"
+            class="bg-[#8B1E1E] hover:bg-[#141413] text-white px-2.5 py-1 font-bold uppercase transition"
+          >
+            ⬇ Makale PDF
+          </a>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- WEB METNİ, VURGU ALINTISI VE PARAGRAF ARASI FOTOĞRAFLAR BÖLÜMÜ     -->
+    <!-- ================================================================= -->
+    <div id="newspaperTextSection">
+      {% if article.cover_image_url %}
+        <figure class="my-5 sm:my-6 border border-[#141413] bg-[#EFE9D9] p-1.5 sm:p-2">
+          <img src="{{ article.cover_image_url }}" alt="{{ article.title }}" class="w-full max-h-[460px] object-cover newspaper-photo" />
+          {% if article.image_caption %}
+            <figcaption class="pt-2 px-1 font-mono-meta text-xs text-[#524F49]">
+              ▲ {{ article.image_caption }}
+            </figcaption>
+          {% endif %}
+        </figure>
+      {% endif %}
+
+      {% if article.pull_quote %}
+        <blockquote class="my-6 p-4 sm:p-5 border-y-2 border-[#141413] bg-[#EFE9D9]/80 text-center">
+          <p class="font-headline italic text-lg sm:text-2xl font-bold text-[#8B1E1E] leading-snug">
+            “{{ article.pull_quote }}”
+          </p>
+        </blockquote>
+      {% endif %}
+
+      <div id="articleBody" class="article-prose drop-cap mt-6 text-[#181816] clearfix">
+        {{ article.content | safe }}
+      </div>
+
+      <div class="mt-4 p-3 bg-[#EFE9D9]/60 border border-[#141413]/25 font-mono-meta text-[11px] text-[#524F49] flex flex-wrap items-center justify-between gap-2 no-print">
+        <span>💡 İPUCU: Metin içinde beğendiğiniz bir cümleyi fareyle veya parmağınızla seçerek <strong>Alıntı Küpürü</strong> olarak kaydedebilirsiniz.</span>
+        {% if article.issue %}
+          <a href="/e-dergi/{{ article.issue.issue_number }}?sayfa={{ article.pdf_page_start or 1 }}" class="text-[#8B1E1E] font-bold underline">
+            📖 Bu yazıyı Sayı #{{ article.issue.issue_number }} Flipbook'ta gör (s. {{ article.pdf_page_start or 1 }}) &rarr;
+          </a>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- DİNAMİK PDF DERGİ SAYFASI GÖRÜNTÜLEYİCİ (MAKALE PDF DİZGİSİ)       -->
+    <!-- ================================================================= -->
+    {% if article_pdf_pages %}
+      <div id="pdfArticleViewerSection" class="my-6 border-2 border-[#141413] bg-[#181816] text-[#F6F2E7] p-3 sm:p-5">
+        <div class="flex flex-wrap items-center justify-between gap-2 pb-3 mb-3 border-b border-white/15 font-mono-meta text-xs">
+          <div class="flex items-center gap-2">
+            <span class="bg-[#8B1E1E] text-white px-2 py-0.5 font-bold text-[10px]">DİZGİLİ MAKALE PDF GÖRÜNÜMÜ</span>
+            <span id="artPdfPageCounter" class="text-[#E6C786] font-bold">
+              Sayfa 1 / {{ article_pdf_pages | length }}
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            {% if article_pdf_pages | length > 1 %}
+              <button onclick="changeArtPdfPage(-1)" class="bg-white/15 hover:bg-white/25 px-2.5 py-1 text-white font-bold">&larr; Önceki</button>
+              <button onclick="changeArtPdfPage(1)" class="bg-[#8B1E1E] hover:bg-[#a62626] px-2.5 py-1 text-white font-bold">Sonraki &rarr;</button>
+            {% endif %}
+            {% if article.pdf_url %}
+              <a href="{{ article.pdf_url }}" target="_blank" class="border border-[#E6C786] text-[#E6C786] px-2.5 py-1 text-[11px] hover:bg-[#E6C786] hover:text-[#141413] transition">
+                ⬇ PDF İndir / Tam Ekran
+              </a>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="flex justify-center bg-[#23211E] p-2 sm:p-4 border border-white/10">
+          <img
+            id="artPdfActiveImage"
+            src="{{ article_pdf_pages[0] }}"
+            alt="Makale PDF Sayfası"
+            class="max-h-[680px] w-auto object-contain shadow-2xl border border-black/40"
+          />
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- YAZAR KARTI -->
+    {% if article.author %}
+      <div class="mt-10 p-4 sm:p-5 border-2 border-[#141413] bg-[#EFE9D9] flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        {% if article.author.avatar_url %}
+          <img src="{{ article.author.avatar_url }}" alt="{{ article.author.name }}" class="w-16 h-16 rounded-full object-cover border border-[#141413] newspaper-photo shrink-0" />
+        {% endif %}
+        <div>
+          <span class="font-mono-meta text-[10px] uppercase tracking-widest text-[#8B1E1E] font-bold">YAZAR HAKKINDA</span>
+          <h3 class="font-headline text-lg font-bold">{{ article.author.name }}</h3>
+          <p class="text-sm text-[#3A3834] mt-1 leading-relaxed">{{ article.author.bio }}</p>
+        </div>
+      </div>
+    {% endif %}
+
+  </article>
+
+  <!-- SAĞ SÜTUN (4 BİRİM): AYLIK DERLENEN SAYI & İLGİLİ MAKALELER -->
+  <aside id="articleSidebar" class="lg:col-span-4 space-y-8">
+    
+    {% if featured_issue %}
+      <div class="bg-[#181816] text-[#F6F2E7] p-5 border-2 border-[#141413]">
+        <span class="font-mono-meta text-[10px] uppercase tracking-widest text-[#E6C786] font-bold block mb-1">
+          AYLIK DERLENEN E-DERGİ SAYISI
+        </span>
+        <h3 class="font-headline text-xl font-bold mb-3">
+          Sayı #{{ featured_issue.issue_number }}: {{ featured_issue.title }}
+        </h3>
+        <a href="/e-dergi/{{ featured_issue.issue_number }}" class="block mb-4 border border-[#E6C786]/40 overflow-hidden">
+          <img src="{{ featured_issue.cover_image_url }}" alt="{{ featured_issue.title }}" class="w-full h-56 object-cover" />
+        </a>
+        <a href="/e-dergi/{{ featured_issue.issue_number }}" class="block w-full text-center bg-[#8B1E1E] hover:bg-[#a52424] text-white font-mono-meta text-xs uppercase font-bold py-2.5 transition">
+          📖 3B Sayfaları Çevirerek Oku
+        </a>
+      </div>
+    {% endif %}
+
+    <div>
+      <div class="border-b-2 border-[#141413] pb-1.5 mb-4">
+        <h3 class="font-mono-meta text-xs font-bold uppercase tracking-widest text-[#8B1E1E]">
+          BU BÖLÜMDEKİ DİĞER MAKALELER
+        </h3>
+      </div>
+
+      <div class="space-y-4">
+        {% for rel in related_articles %}
+          <article class="pb-4 border-b border-[#141413]/20 group">
+            <div class="flex items-center justify-between font-mono-meta text-[10px]">
+              <span class="uppercase text-[#8B1E1E] font-bold">
+                {{ rel.category.name if rel.category else 'EDEBİYAT' }}
+              </span>
+              {% if rel.issue %}
+                <span class="text-[#524F49]">Sayı #{{ rel.issue.issue_number }} • s.{{ rel.pdf_page_start or 1 }}</span>
+              {% else %}
+                <span class="text-[#1B5E20] font-bold">Erken Görünüm</span>
+              {% endif %}
+            </div>
+            <a href="/yazi/{{ rel.slug }}">
+              <h4 class="font-headline text-base font-bold leading-snug group-hover:text-[#8B1E1E] transition mt-0.5">
+                {{ rel.title }}
+              </h4>
+            </a>
+            <p class="font-mono-meta text-[11px] text-[#524F49] mt-1">
+              ✍ {{ rel.author.name if rel.author else 'Misafir' }} • {{ rel.reading_time }} dk
+            </p>
+          </article>
+        {% endfor %}
+      </div>
+    </div>
+
+  </aside>
+
+</div>
+
+<!-- ❝ METİN SEÇİM ALINTI KOPYALAMA & KÜPÜR BALONU -->
+<div
+  id="quoteSelectionPopover"
+  class="fixed z-50 hidden items-center gap-1.5 bg-[#141413] text-[#F6F2E7] border border-[#E6C786] px-2.5 py-1.5 shadow-2xl font-mono-meta text-[11px] no-print"
+>
+  <button onclick="copySelectedQuote()" class="hover:text-[#E6C786] font-bold px-1.5 py-0.5">
+    ❝ Alıntıyı Kopyala
+  </button>
+  <span class="opacity-40">|</span>
+  <button onclick="saveSelectedQuoteToClips()" class="text-[#E6C786] hover:underline font-bold px-1.5 py-0.5">
+    🔖 Küpüre Kaydet
+  </button>
+</div>
+
+<script>
+  const articlePdfPages = {{ article_pdf_pages | tojson }};
+  const currentArticleMeta = {
+    title: {{ article.title | tojson }},
+    url: '/yazi/{{ article.slug }}',
+    author: {{ (article.author.name if article.author else 'Misafir') | tojson }}
+  };
+  let currentArtPdfIdx = 0;
+  let isTwoCols = false;
+  let lastSelectedText = '';
+
+  function changeArtPdfPage(delta) {
+    if (!articlePdfPages.length) return;
+    currentArtPdfIdx = (currentArtPdfIdx + delta + articlePdfPages.length) % articlePdfPages.length;
+    const img = document.getElementById('artPdfActiveImage');
+    const counter = document.getElementById('artPdfPageCounter');
+    if (img) img.src = articlePdfPages[currentArtPdfIdx];
+    if (counter) counter.textContent = `Sayfa ${currentArtPdfIdx + 1} / ${articlePdfPages.length}`;
+  }
+
+  function setArticlePageMode(mode) {
+    const pdfSec = document.getElementById('pdfArticleViewerSection');
+    const textSec = document.getElementById('newspaperTextSection');
+
+    ['gazete_ve_pdf', 'sadece_pdf', 'klasik_gazete'].forEach(m => {
+      const btn = document.getElementById(`modeBtn-${m}`);
+      if (btn) {
+        if (m === mode) {
+          btn.className = 'border border-[#141413] bg-[#141413] text-[#F6F2E7] px-2.5 py-1 text-[11px] font-bold transition';
+        } else {
+          btn.className = 'border border-[#141413] bg-transparent text-[#141413] px-2.5 py-1 text-[11px] font-bold transition';
+        }
+      }
+    });
+
+    if (mode === 'sadece_pdf') {
+      if (pdfSec) pdfSec.classList.remove('hidden');
+      if (textSec) textSec.classList.add('hidden');
+    } else if (mode === 'klasik_gazete') {
+      if (pdfSec) pdfSec.classList.add('hidden');
+      if (textSec) textSec.classList.remove('hidden');
+    } else {
+      if (pdfSec) pdfSec.classList.remove('hidden');
+      if (textSec) textSec.classList.remove('hidden');
+    }
+  }
+
+  function toggleColumns() {
+    const body = document.getElementById('articleBody');
+    const btn = document.getElementById('colToggleBtn');
+    isTwoCols = !isTwoCols;
+    if (isTwoCols) {
+      body.classList.add('newspaper-columns-2');
+      btn.textContent = 'Tek Sütun';
+    } else {
+      body.classList.remove('newspaper-columns-2');
+      btn.textContent = 'Çift Sütun';
+    }
+  }
+
+  function saveCurrentArticleToClips() {
+    if (typeof saveClipItem === 'function') {
+      saveClipItem({
+        type: 'article',
+        title: currentArticleMeta.title,
+        url: currentArticleMeta.url,
+        quote: ''
+      });
+      const btn = document.getElementById('saveArticleBtn');
+      if (btn) btn.textContent = '✅ Küpüre Eklendi';
+    }
+  }
+
+  // Metin Seçim Balonu
+  document.addEventListener('mouseup', () => {
+    const sel = window.getSelection();
+    const pop = document.getElementById('quoteSelectionPopover');
+    if (!sel || !pop) return;
+    const text = sel.toString().trim();
+    if (text.length >= 18 && text.length <= 360) {
+      lastSelectedText = text;
+      const rect = sel.getRangeAt(0).getBoundingClientRect();
+      pop.style.top = Math.max(12, rect.top - 42) + 'px';
+      pop.style.left = Math.min(window.innerWidth - 250, Math.max(12, rect.left)) + 'px';
+      pop.classList.remove('hidden');
+      pop.classList.add('flex');
+    } else {
+      pop.classList.add('hidden');
+      pop.classList.remove('flex');
+    }
+  });
+
+  function copySelectedQuote() {
+    if (!lastSelectedText) return;
+    const formatted = `“${lastSelectedText}” — ${currentArticleMeta.author}, ${currentArticleMeta.title} (MİSAFİR Dergi)`;
+    navigator.clipboard.writeText(formatted);
+    const pop = document.getElementById('quoteSelectionPopover');
+    if (pop) pop.classList.add('hidden');
+  }
+
+  function saveSelectedQuoteToClips() {
+    if (!lastSelectedText || typeof saveClipItem !== 'function') return;
+    saveClipItem({
+      type: 'quote',
+      title: currentArticleMeta.title,
+      url: currentArticleMeta.url,
+      quote: lastSelectedText
+    });
+    const pop = document.getElementById('quoteSelectionPopover');
+    if (pop) pop.classList.add('hidden');
+    if (typeof toggleSavedDrawer === 'function') toggleSavedDrawer();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setArticlePageMode('{{ article.page_layout or "gazete_ve_pdf" }}');
+  });
+</script>
+{% endblock %}

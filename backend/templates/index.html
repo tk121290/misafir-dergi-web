@@ -1,0 +1,365 @@
+{% extends "base.html" %}
+
+{% block title %}
+  {% if active_category %}
+    {{ active_category.name }} Yazıları — MİSAFİR Gazete & Dergi
+  {% else %}
+    MİSAFİR — Kültür, Edebiyat ve Düşünce Gazetesi (1. Sayfa)
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+
+  {% if active_category or search_query %}
+    <div class="mb-6 bg-[#EFE9D9] border border-[#141413] px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+      <div>
+        <span class="font-mono-meta text-xs uppercase text-[#8B1E1E] font-bold">FİLTRELENMİŞ NÜSHA</span>
+        <h2 class="font-headline text-xl sm:text-2xl font-bold">
+          {% if active_category %}Bölüm: {{ active_category.name }}{% endif %}
+          {% if search_query %}Arama: “{{ search_query }}”{% endif %}
+        </h2>
+      </div>
+      <a href="/" class="font-mono-meta text-xs underline font-bold hover:text-[#8B1E1E]">1. Sayfaya Dön &times;</a>
+    </div>
+  {% endif %}
+
+  <!-- SÜRMANŞET (ÜST MANŞET ŞERİDİ - RESPONSIVE) -->
+  {% if surmanset and not active_category and not search_query %}
+    <section class="mb-6 pb-5 border-b-2 border-[#141413]">
+      <div class="bg-[#FAF7F0] border border-[#141413]/40 p-3.5 sm:p-5 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-center group">
+        <div class="lg:col-span-8">
+          <div class="flex flex-wrap items-center gap-2 mb-1.5">
+            <span class="bg-[#8B1E1E] text-white font-mono-meta text-[10px] font-bold uppercase px-2 py-0.5 tracking-widest">
+              SÜRMANŞET • {{ surmanset.category.name if surmanset.category else 'DOSYA' }}
+            </span>
+            <span class="font-mono-meta text-[11px] sm:text-xs text-[#524F49]">
+              Kaleme Alan: <strong>{{ surmanset.author.name if surmanset.author else 'Misafir Heyeti' }}</strong> • {{ surmanset.reading_time }} dk
+            </span>
+          </div>
+          <a href="/yazi/{{ surmanset.slug }}">
+            <h2 class="font-headline text-xl sm:text-3xl md:text-4xl font-black leading-tight text-[#141413] group-hover:text-[#8B1E1E] transition">
+              {{ surmanset.title }}
+            </h2>
+          </a>
+          <p class="mt-2 text-sm sm:text-base text-[#3A3834] leading-relaxed">
+            {{ surmanset.subtitle }}
+          </p>
+        </div>
+        <div class="lg:col-span-4">
+          {% if surmanset.cover_image_url %}
+            <a href="/yazi/{{ surmanset.slug }}" class="block overflow-hidden border border-[#141413]">
+              <img src="{{ surmanset.cover_image_url }}" alt="{{ surmanset.title }}" class="w-full h-44 sm:h-40 object-cover newspaper-photo" />
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+  {% endif %}
+
+  <!-- GAZETE 1. SAYFA ANA GÖVDE (MOBİLDE ÖNCE ANA MANŞET, MASAÜSTÜNDE 3 SÜTUN) -->
+  <section class="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-8 border-b-2 border-[#141413]">
+
+    <!-- SOL SÜTUN (3 BİRİM - MOBİLDE 2. SIRADA, MASAÜSTÜNDE 1. SIRADA): İKİNCİL MANŞET + E-DERGİ FLIPBOOK KUTUSU -->
+    <div class="order-2 lg:order-1 lg:col-span-3 lg:pr-5 lg:border-r border-[#141413]/25 flex flex-col justify-between space-y-6 pt-6 lg:pt-0 border-t lg:border-t-0 border-[#141413]/25">
+      
+      {% if ikincil_manset %}
+        <article class="group pb-6 border-b border-[#141413]/25">
+          <span class="font-mono-meta text-[10px] uppercase tracking-widest text-[#8B1E1E] font-bold block mb-1">
+            GÜNÜN İNCELEMESİ • {{ ikincil_manset.category.name if ikincil_manset.category else 'EDEBİYAT' }}
+          </span>
+          {% if ikincil_manset.cover_image_url %}
+            <a href="/yazi/{{ ikincil_manset.slug }}" class="block mb-3 border border-[#141413] overflow-hidden">
+              <img src="{{ ikincil_manset.cover_image_url }}" alt="{{ ikincil_manset.title }}" class="w-full h-48 sm:h-44 object-cover newspaper-photo" />
+            </a>
+          {% endif %}
+          <a href="/yazi/{{ ikincil_manset.slug }}">
+            <h3 class="font-headline text-xl font-bold leading-snug group-hover:text-[#8B1E1E] transition">
+              {{ ikincil_manset.title }}
+            </h3>
+          </a>
+          <p class="text-sm text-[#3A3834] mt-2 leading-relaxed">
+            {{ ikincil_manset.subtitle }}
+          </p>
+          <div class="mt-3 font-mono-meta text-[11px] text-[#524F49] flex items-center justify-between">
+            <span>✍ {{ ikincil_manset.author.name if ikincil_manset.author else 'Editör' }}</span>
+            <a href="/yazi/{{ ikincil_manset.slug }}" class="underline font-bold text-[#141413] hover:text-[#8B1E1E]">Devamı &rarr;</a>
+          </div>
+        </article>
+      {% endif %}
+
+      <!-- E-DERGİ (SAYFA ÇEVİRMELİ PDF) ÖZEL KUTUSU -->
+      {% if featured_issue %}
+        <div class="bg-[#181816] text-[#F6F2E7] p-4 border-2 border-[#141413] relative">
+          <div class="flex items-center justify-between border-b border-[#F6F2E7]/20 pb-2 mb-3">
+            <span class="font-mono-meta text-[10px] uppercase tracking-widest text-[#E6C786] font-bold">
+              İNTERAKTİF E-DERGİ
+            </span>
+            <span class="font-mono-meta text-[10px] bg-[#8B1E1E] px-1.5 py-0.5 text-white font-bold">
+              SAYI #{{ featured_issue.issue_number }}
+            </span>
+          </div>
+
+          <a href="/e-dergi/{{ featured_issue.issue_number }}" class="block group">
+            <div class="relative mx-auto w-40 h-56 mb-3 border border-[#E6C786]/40 overflow-hidden shadow-lg">
+              <img src="{{ featured_issue.cover_image_url }}" alt="{{ featured_issue.title }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+              <div class="absolute inset-0 bg-black/25 group-hover:bg-transparent transition flex items-end p-2">
+                <span class="bg-[#141413]/90 text-[#E6C786] font-mono-meta text-[10px] px-2 py-0.5">
+                  {{ featured_issue.page_count }} Sayfa • Flipbook
+                </span>
+              </div>
+            </div>
+            <h4 class="font-headline text-lg font-bold text-center leading-snug group-hover:text-[#E6C786] transition">
+              {{ featured_issue.title }}
+            </h4>
+          </a>
+
+          <p class="text-xs text-[#D5CFC2] text-center mt-1.5 line-clamp-2">
+            {{ featured_issue.subtitle }}
+          </p>
+
+          <div class="mt-4 space-y-2">
+            <a href="/e-dergi/{{ featured_issue.issue_number }}" class="block w-full text-center bg-[#8B1E1E] hover:bg-[#a62626] text-white font-mono-meta text-xs font-bold uppercase py-2.5 transition">
+              📖 Sayfaları Çevirerek Oku
+            </a>
+            <a href="{{ featured_issue.pdf_url }}" target="_blank" class="block w-full text-center border border-[#F6F2E7]/30 hover:border-[#E6C786] text-[#D5CFC2] font-mono-meta text-[11px] py-1.5 transition">
+              ⬇ PDF Nüshasını İndir
+            </a>
+          </div>
+        </div>
+      {% endif %}
+
+    </div>
+
+    <!-- ORTA SÜTUN (6 BİRİM - MOBİLDE 1. SIRADA): ANA MANŞET (BAŞYAZI / DOSYA) -->
+    <div class="order-1 lg:order-2 lg:col-span-6 lg:px-2">
+      {% if ana_manset %}
+        <article class="group">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <span class="font-mono-meta text-xs uppercase tracking-widest text-[#8B1E1E] font-bold">
+              ★ BAŞMANŞET • {{ ana_manset.category.name if ana_manset.category else 'KAPAK DOSYASI' }}
+            </span>
+            <span class="font-mono-meta text-[11px] text-[#524F49]">
+              {{ ana_manset.reading_time }} DK OKUMA • {{ ana_manset.view_count }} OKUNMA
+            </span>
+          </div>
+
+          <a href="/yazi/{{ ana_manset.slug }}">
+            <h2 class="font-headline text-2xl sm:text-4xl md:text-[2.6rem] font-black leading-[1.14] text-[#141413] group-hover:text-[#8B1E1E] transition">
+              {{ ana_manset.title }}
+            </h2>
+          </a>
+
+          <p class="mt-3 font-body text-base sm:text-lg text-[#2C2A27] leading-relaxed italic">
+            {{ ana_manset.subtitle }}
+          </p>
+
+          {% if ana_manset.cover_image_url %}
+            <figure class="my-4 border border-[#141413] bg-[#EFE9D9] p-1.5">
+              <a href="/yazi/{{ ana_manset.slug }}" class="block overflow-hidden">
+                <img
+                  src="{{ ana_manset.cover_image_url }}"
+                  alt="{{ ana_manset.title }}"
+                  class="w-full h-56 sm:h-80 md:h-96 object-cover newspaper-photo"
+                />
+              </a>
+              {% if ana_manset.image_caption %}
+                <figcaption class="pt-1.5 px-1 font-mono-meta text-[11px] text-[#524F49] flex flex-wrap justify-between gap-1">
+                  <span>▲ {{ ana_manset.image_caption }}</span>
+                  <span>MİSAFİR ARŞİVİ</span>
+                </figcaption>
+              {% endif %}
+            </figure>
+          {% endif %}
+
+          {% if ana_manset.pull_quote %}
+            <blockquote class="my-4 pl-4 border-l-4 border-[#8B1E1E] italic font-headline text-base sm:text-lg text-[#141413] bg-[#EFE9D9]/60 py-2 pr-3">
+              “{{ ana_manset.pull_quote }}”
+            </blockquote>
+          {% endif %}
+
+          <!-- Manşet Metin Özeti -->
+          <div class="text-sm sm:text-base leading-relaxed text-[#252422] newspaper-columns-2 mt-3">
+            {{ ana_manset.content | striptags | truncate(520) }}
+          </div>
+
+          <div class="mt-5 pt-3 border-t border-[#141413]/30 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5">
+              {% if ana_manset.author and ana_manset.author.avatar_url %}
+                <img src="{{ ana_manset.author.avatar_url }}" alt="" class="w-9 h-9 rounded-full object-cover border border-[#141413] newspaper-photo" />
+              {% endif %}
+              <div class="text-xs">
+                <span class="font-bold text-[#141413] block">{{ ana_manset.author.name if ana_manset.author else 'Misafir Yazı İşleri' }}</span>
+                <span class="font-mono-meta text-[10px] text-[#524F49]">{{ ana_manset.author.title if ana_manset.author else 'Yazar' }}</span>
+              </div>
+            </div>
+
+            <a href="/yazi/{{ ana_manset.slug }}" class="bg-[#141413] hover:bg-[#8B1E1E] text-[#F6F2E7] font-mono-meta text-xs uppercase px-4 py-2 font-bold transition">
+              Tamamını Oku &rarr;
+            </a>
+          </div>
+        </article>
+      {% endif %}
+    </div>
+
+    <!-- SAĞ SÜTUN (3 BİRİM - 3. SIRADA): KÖŞE YAZILARI (TEFRİKA & SÜTUNLAR) -->
+    <div class="order-3 lg:col-span-3 lg:pl-5 lg:border-l border-[#141413]/25 pt-6 lg:pt-0 border-t lg:border-t-0 border-[#141413]/25">
+      <div class="border-b-2 border-[#141413] pb-1.5 mb-4 flex items-center justify-between">
+        <h3 class="font-mono-meta text-xs font-bold uppercase tracking-widest text-[#8B1E1E]">
+          ✒ KÖŞE YAZILARI & TEFRİKA
+        </h3>
+        <span class="font-mono-meta text-[10px] text-[#524F49]">SÜTUN</span>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-5">
+        {% for kose in kose_yazilari %}
+          <article class="pb-5 border-b border-[#141413]/20 group">
+            <div class="flex items-center gap-3 mb-2">
+              {% if kose.author and kose.author.avatar_url %}
+                <img
+                  src="{{ kose.author.avatar_url }}"
+                  alt="{{ kose.author.name }}"
+                  class="w-12 h-12 rounded-full object-cover border border-[#141413] newspaper-photo shrink-0"
+                />
+              {% endif %}
+              <div>
+                <p class="font-mono-meta text-[11px] font-bold uppercase text-[#8B1E1E]">
+                  {{ kose.author.name if kose.author else 'Köşe Yazarı' }}
+                </p>
+                <p class="font-mono-meta text-[10px] text-[#524F49]">
+                  {{ kose.author.title if kose.author else 'Deneme' }}
+                </p>
+              </div>
+            </div>
+
+            <a href="/yazi/{{ kose.slug }}">
+              <h4 class="font-headline text-lg font-bold leading-snug group-hover:text-[#8B1E1E] transition">
+                “{{ kose.title }}”
+              </h4>
+            </a>
+
+            <p class="text-xs sm:text-sm text-[#3A3834] mt-1.5 leading-relaxed line-clamp-3">
+              {{ kose.subtitle or (kose.content | striptags | truncate(140)) }}
+            </p>
+
+            <a href="/yazi/{{ kose.slug }}" class="inline-block mt-2 font-mono-meta text-[11px] underline font-semibold hover:text-[#8B1E1E]">
+              Köşe Yazısını Oku &rarr;
+            </a>
+          </article>
+        {% endfor %}
+      </div>
+
+      <!-- GÜNÜN ALINTISI / TEFRİKA NOTU -->
+      <div class="mt-6 bg-[#EFE9D9] border border-[#141413]/50 p-4">
+        <span class="font-mono-meta text-[10px] uppercase tracking-widest text-[#8B1E1E] font-bold block mb-1">
+          GÜNÜN NOTU • DERKENAR
+        </span>
+        <p class="font-headline italic text-sm leading-relaxed text-[#141413]">
+          “Hepimiz bu yeryüzünde birer misafiriz; geriye yalnızca kurduğumuz özenli cümleler kalır.”
+        </p>
+        <span class="block mt-2 font-mono-meta text-[10px] text-right text-[#524F49]">
+          — Misafir Defterleri
+        </span>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ORTA SAYFA: DİĞER GAZETE & BLOG YAZILARI -->
+  <section class="py-8 border-b-2 border-[#141413]">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <div>
+        <span class="font-mono-meta text-xs uppercase tracking-widest text-[#8B1E1E] font-bold">
+          EDEBİYAT, KÜLTÜR VE ELEŞTİRİ SEÇKİSİ
+        </span>
+        <h3 class="font-headline text-2xl sm:text-3xl font-black">
+          Orta Sayfa & Dergi Dosya Yazıları
+        </h3>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {% for yazi in standart_yazilar %}
+        <article class="border border-[#141413]/30 bg-[#FAF7F0] p-4 flex flex-col justify-between group">
+          <div>
+            <div class="flex items-center justify-between text-[11px] font-mono-meta text-[#8B1E1E] font-bold uppercase mb-2">
+              <span>{{ yazi.category.name if yazi.category else 'KÜLTÜR' }}</span>
+              <span class="text-[#524F49]">{{ yazi.reading_time }} DK</span>
+            </div>
+
+            {% if yazi.cover_image_url %}
+              <a href="/yazi/{{ yazi.slug }}" class="block mb-3 border border-[#141413] overflow-hidden">
+                <img src="{{ yazi.cover_image_url }}" alt="{{ yazi.title }}" class="w-full h-44 object-cover newspaper-photo" />
+              </a>
+            {% endif %}
+
+            <a href="/yazi/{{ yazi.slug }}">
+              <h4 class="font-headline text-xl font-bold leading-snug group-hover:text-[#8B1E1E] transition">
+                {{ yazi.title }}
+              </h4>
+            </a>
+
+            <p class="text-sm text-[#3A3834] mt-2 leading-relaxed line-clamp-3">
+              {{ yazi.subtitle }}
+            </p>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-[#141413]/20 flex items-center justify-between text-xs font-mono-meta">
+            <span>✍ {{ yazi.author.name if yazi.author else 'Misafir' }}</span>
+            <a href="/yazi/{{ yazi.slug }}" class="font-bold underline hover:text-[#8B1E1E]">Oku &rarr;</a>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- ALT VİTRİN: SAYFA ÇEVİRMELİ E-DERGİ ARŞİVİ -->
+  <section class="pt-8">
+    <div class="flex flex-wrap items-end justify-between mb-6 gap-4">
+      <div>
+        <span class="font-mono-meta text-xs uppercase tracking-widest text-[#8B1E1E] font-bold">
+          BASILI NÜSHALAR & İNTERAKTİF FLIPBOOK
+        </span>
+        <h3 class="font-headline text-2xl sm:text-3xl font-black">
+          Sayfa Çevirmeli E-Dergi Kütüphanesi
+        </h3>
+      </div>
+      <a href="/sayilar" class="font-mono-meta text-xs underline font-bold hover:text-[#8B1E1E]">
+        Tüm Dergi Arşivini Gör &rarr;
+      </a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {% for issue in all_issues %}
+        <div class="border-2 border-[#141413] bg-[#EFE9D9] p-4 flex gap-4 items-center group">
+          <a href="/e-dergi/{{ issue.issue_number }}" class="shrink-0 w-24 sm:w-28 h-36 sm:h-40 border border-[#141413] overflow-hidden shadow-md">
+            <img src="{{ issue.cover_image_url }}" alt="{{ issue.title }}" class="w-full h-full object-cover newspaper-photo" />
+          </a>
+          <div class="flex flex-col justify-between h-full min-w-0">
+            <div>
+              <span class="font-mono-meta text-[10px] bg-[#141413] text-[#F6F2E7] px-2 py-0.5 font-bold uppercase">
+                SAYI #{{ issue.issue_number }} • {{ issue.month_year }}
+              </span>
+              <a href="/e-dergi/{{ issue.issue_number }}">
+                <h4 class="font-headline text-base sm:text-lg font-bold leading-snug mt-1.5 group-hover:text-[#8B1E1E] transition line-clamp-2">
+                  {{ issue.title }}
+                </h4>
+              </a>
+              <p class="text-xs text-[#3A3834] mt-1 line-clamp-2">
+                {{ issue.subtitle }}
+              </p>
+            </div>
+            <div class="mt-3 flex items-center gap-3 font-mono-meta text-xs">
+              <a href="/e-dergi/{{ issue.issue_number }}" class="bg-[#8B1E1E] text-white px-3 py-1 font-bold hover:bg-[#141413] transition">
+                📖 Flipbook Oku
+              </a>
+              <a href="{{ issue.pdf_url }}" target="_blank" class="underline text-[#141413] hover:text-[#8B1E1E]">
+                PDF
+              </a>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+{% endblock %}

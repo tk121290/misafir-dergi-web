@@ -1,0 +1,253 @@
+/* MİSAFİR DERGİ & GAZETE — TAM RESPONSIVE EDİTORYAL BASKI TASARIM SİSTEMİ */
+
+:root {
+  --paper-bg: #f6f2e7;
+  --paper-darker: #ece5d5;
+  --paper-card: #faf7f0;
+  --ink-black: #141413;
+  --ink-muted: #524f49;
+  --ink-rule: #242320;
+  --ink-hairline: rgba(20, 20, 19, 0.22);
+  --accent-burgundy: #8b1e1e;
+  --accent-gold: #9b7432;
+}
+
+/* GECE BASKISI (DARK PAPER EDITION) */
+body.night-edition {
+  --paper-bg: #151412;
+  --paper-darker: #1e1c19;
+  --paper-card: #211f1b;
+  --ink-black: #ede7d9;
+  --ink-muted: #b0a899;
+  --ink-rule: #3a3630;
+  --ink-hairline: rgba(237, 231, 217, 0.18);
+  background-color: #151412 !important;
+  color: #ede7d9 !important;
+}
+
+body.night-edition .bg-\[\#FAF7F0\],
+body.night-edition .bg-\[\#EFE9D9\],
+body.night-edition .bg-\[\#EFE9D9\]\/70,
+body.night-edition .bg-\[\#EFE9D9\]\/60,
+body.night-edition .bg-white {
+  background-color: #211f1b !important;
+  color: #ede7d9 !important;
+}
+
+body.night-edition .text-\[\#141413\],
+body.night-edition .text-\[\#252422\],
+body.night-edition .text-\[\#2C2A27\],
+body.night-edition .text-\[\#3A3834\] {
+  color: #ede7d9 !important;
+}
+
+body.night-edition .text-\[\#524F49\] {
+  color: #b5ad9e !important;
+}
+
+body.night-edition .border-\[\#141413\],
+body.night-edition .border-\[\#141413\]\/30,
+body.night-edition .border-\[\#141413\]\/40 {
+  border-color: rgba(237, 231, 217, 0.28) !important;
+}
+
+/* ZEN ODAK OKUMA MODU */
+body.zen-mode header,
+body.zen-mode footer,
+body.zen-mode #articleSidebar {
+  display: none !important;
+}
+
+body.zen-mode #articleMainCol {
+  grid-column: span 12 / span 12 !important;
+  max-width: 780px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  border-right: none !important;
+  padding-right: 0 !important;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--paper-bg);
+  color: var(--ink-black);
+  font-family: 'Lora', Georgia, 'Times New Roman', serif;
+  background-image: radial-gradient(rgba(20, 20, 19, 0.035) 1px, transparent 0);
+  background-size: 22px 22px;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.font-masthead {
+  font-family: 'Playfair Display', Georgia, serif;
+  letter-spacing: -0.02em;
+}
+
+.font-headline {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+.font-body {
+  font-family: 'Lora', Georgia, serif;
+}
+
+.font-mono-meta {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Gazete Çift Çizgi ve İnce Mürekkep Cetvelleri */
+.ink-double-rule {
+  border-top: 3px solid var(--ink-black);
+  border-bottom: 1px solid var(--ink-black);
+  height: 6px;
+}
+
+.ink-double-bottom {
+  border-bottom: 4px double var(--ink-black);
+}
+
+/* Gazete Fotoğraf Efekti */
+.newspaper-photo {
+  filter: grayscale(72%) contrast(106%) sepia(12%);
+  transition: filter 0.45s ease, transform 0.45s ease;
+}
+
+.group:hover .newspaper-photo,
+.newspaper-photo:hover {
+  filter: grayscale(0%) contrast(102%) sepia(0%);
+}
+
+/* Gazete Makale İlk Harf (Drop Cap) - Responsive */
+.drop-cap > p:first-of-type::first-letter {
+  float: left;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(3.3rem, 6vw, 4.5rem);
+  line-height: 0.82;
+  padding-top: 4px;
+  padding-right: 12px;
+  padding-bottom: 4px;
+  font-weight: 800;
+  color: var(--accent-burgundy);
+}
+
+.article-prose p {
+  margin-bottom: 1.25rem;
+  line-height: 1.85;
+  font-size: var(--prose-size, clamp(1.02rem, 2.2vw, 1.14rem));
+  text-align: left;
+}
+
+body.font-sm {
+  --prose-size: 0.95rem;
+}
+
+body.font-lg {
+  --prose-size: 1.28rem;
+}
+
+@media (min-width: 640px) {
+  .article-prose p {
+    text-align: justify;
+  }
+}
+
+.article-prose h3 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(1.3rem, 3vw, 1.6rem);
+  font-weight: 700;
+  margin-top: 1.85rem;
+  margin-bottom: 0.85rem;
+  border-bottom: 1px solid var(--ink-hairline);
+  padding-bottom: 0.35rem;
+}
+
+/* YAZI ARALARINA EKLENEN EDİTORYAL GAZETE FOTOĞRAFLARI (INLINE FIGURES) */
+.newspaper-inline-figure {
+  border: 1.5px solid var(--ink-black);
+  background-color: var(--paper-card);
+  padding: 0.55rem;
+  margin: 1.5rem 0;
+  break-inside: avoid;
+}
+
+.newspaper-inline-figure img {
+  width: 100%;
+  height: auto;
+  max-height: 440px;
+  object-fit: cover;
+  display: block;
+  border: 1px solid rgba(20, 20, 19, 0.25);
+}
+
+.newspaper-inline-figure figcaption {
+  margin-top: 0.45rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.74rem;
+  color: var(--ink-muted);
+  line-height: 1.4;
+}
+
+@media (min-width: 640px) {
+  .inline-fig-left {
+    float: left;
+    width: 46%;
+    margin: 0.35rem 1.35rem 1rem 0;
+  }
+  .inline-fig-right {
+    float: right;
+    width: 46%;
+    margin: 0.35rem 0 1rem 1.35rem;
+  }
+}
+
+/* Çok Sütunlu Gazete Okuma Modu */
+.newspaper-columns-2 {
+  column-count: 1;
+  column-gap: 2.25rem;
+  column-rule: 1px solid var(--ink-hairline);
+}
+
+@media (min-width: 768px) {
+  .newspaper-columns-2 {
+    column-count: 2;
+  }
+}
+
+/* Yatay Kaydırılabilir Menü Çubuğu */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Dergi Sayfa Çevirme (Flipbook) Sahnesi */
+.flipbook-stage {
+  background: radial-gradient(circle at center, #2b2925 0%, #151412 100%);
+  box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.75);
+}
+
+.magazine-page-shadow {
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55), 0 0 2px rgba(255, 255, 255, 0.15);
+}
+
+@media print {
+  header nav,
+  footer,
+  aside,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+}
